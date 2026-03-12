@@ -1,0 +1,9 @@
+{
+  "sdk": {
+    "version": "8.0.419",
+    "rollForward": "disable"
+  },
+  "msbuild-sdks": {
+    "Microsoft.NET.ILLink.Tasks": "8.0.19"
+  }
+}
