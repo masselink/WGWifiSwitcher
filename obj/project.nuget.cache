@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "2embt0nRAtI=",
+  "dgSpecHash": "sqMw+lU3cBY=",
   "success": true,
-  "projectFilePath": "C:\\Users\\HaroldMasselink\\Downloads\\WGWifiSwitcher\\WGWifiSwitcher.csproj",
+  "projectFilePath": "C:\\Users\\HaroldMasselink\\Downloads\\WGClientWifiSwitcher\\WGClientWifiSwitcher.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\HaroldMasselink\\.nuget\\packages\\system.diagnostics.eventlog\\8.0.0\\system.diagnostics.eventlog.8.0.0.nupkg.sha512",
     "C:\\Users\\HaroldMasselink\\.nuget\\packages\\system.serviceprocess.servicecontroller\\8.0.0\\system.serviceprocess.servicecontroller.8.0.0.nupkg.sha512"

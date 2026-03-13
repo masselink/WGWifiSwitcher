@@ -17,7 +17,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace WGWifiSwitcher
+namespace WGClientWifiSwitcher
 {
     public class TunnelRule : INotifyPropertyChanged
     {
@@ -39,21 +39,48 @@ namespace WGWifiSwitcher
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
     }
 
+    // Represents a known tunnel with live status for the manual panel
+    public class TunnelEntry : System.ComponentModel.INotifyPropertyChanged
+    {
+        private bool _active = false;
+
+        public string Name   { get; set; } = "";
+
+        public bool Active
+        {
+            get => _active;
+            set { _active = value; OnProp(); OnProp(nameof(StatusText)); OnProp(nameof(StatusColor)); OnProp(nameof(ButtonLabel)); }
+        }
+
+        public string StatusText  => _active ? "● Connected" : "○ Disconnected";
+        public System.Windows.Media.SolidColorBrush StatusColor =>
+            _active
+                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(63, 185, 80))
+                : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(139, 148, 158));
+        public string ButtonLabel => _active ? "Disconnect" : "Connect";
+
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        private void OnProp([System.Runtime.CompilerServices.CallerMemberName] string? n = null)
+            => PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(n));
+    }
+
     public class AppConfig
     {
         public List<TunnelRule> Rules         { get; set; } = new();
         public string           DefaultAction { get; set; } = "none";
         public string           DefaultTunnel { get; set; } = "";
+        public string           ConfDirectory { get; set; } = @"C:\Program Files\WireGuard\Data\Configurations";
     }
 
     public partial class MainWindow : Window
     {
         private static readonly string ConfigPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "WGWifiSwitcher", "config.json");
+            "WGClientWifiSwitcher", "config.json");
 
-        private AppConfig _cfg = new();
-        private readonly ObservableCollection<TunnelRule> _rules = new();
+        private static AppConfig _cfg = new();
+        private readonly ObservableCollection<TunnelRule>  _rules   = new();
+        private readonly ObservableCollection<TunnelEntry> _tunnels = new();
         private string? _lastWifi;
         private readonly DispatcherTimer _timer = new();
         private bool _loading = false;
@@ -65,20 +92,112 @@ namespace WGWifiSwitcher
                 : "wireguard";
 
         // Search known locations for a tunnel's .conf file
-        private static string? FindConfPath(string tunnel)
+        private static string? FindConfPath(string tunnel, out string searched)
         {
-            var dirs = new[]
+            var dirs = new List<string>();
+
+            // User-configured directory first
+            if (!string.IsNullOrWhiteSpace(_cfg.ConfDirectory))
+                dirs.Add(_cfg.ConfDirectory);
+
+            dirs.AddRange(new[]
             {
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),       "WireGuard"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),  "WireGuard"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "WireGuard"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),          "WireGuard"),
-            };
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),          "WireGuard", "Data"),
+                @"C:\WireGuard",
+            });
+
+            var tried = new System.Text.StringBuilder();
             foreach (var dir in dirs)
             {
                 var p = Path.Combine(dir, tunnel + ".conf");
-                if (File.Exists(p)) return p;
+                if (File.Exists(p)) { searched = tried.ToString(); return p; }
+                var pd = Path.Combine(dir, tunnel + ".conf.dpapi");
+                if (File.Exists(pd)) { searched = tried.ToString(); return pd; }
             }
+            searched = tried.ToString();
             return null;
+        }
+
+        private static string? FindConfPath(string tunnel) => FindConfPath(tunnel, out _);
+
+        // Returns tunnel names from .conf files in the configured directory
+        internal static List<string> GetAvailableTunnels()
+        {
+            // Strategy 1: scan .conf files from configured/known directories
+            var fromFiles = GetTunnelsFromFiles();
+            if (fromFiles.Count > 0) return fromFiles;
+
+            // Strategy 2: read tunnel names from installed Windows services
+            // WireGuard registers each tunnel as WireGuardTunnel$<name> — readable by admins
+            var fromServices = GetTunnelsFromServices();
+            if (fromServices.Count > 0) return fromServices;
+
+            return new List<string>();
+        }
+
+        private static List<string> GetTunnelsFromFiles()
+        {
+            var candidates = new List<string>();
+            if (!string.IsNullOrWhiteSpace(_cfg.ConfDirectory))
+                candidates.Add(_cfg.ConfDirectory);
+            candidates.AddRange(new[]
+            {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),       "WireGuard"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),  "WireGuard"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "WireGuard"),
+                @"C:\Program Files\WireGuard\Data\Configurations",
+                @"C:\ProgramData\WireGuard",
+            });
+
+            foreach (var candidate in candidates)
+            {
+                if (string.IsNullOrWhiteSpace(candidate)) continue;
+                try
+                {
+                    if (!Directory.Exists(candidate)) continue;
+                    // WireGuard stores configs as .conf (portable) or .conf.dpapi (DPAPI-encrypted)
+                    var found = Directory.GetFiles(candidate)
+                        .Where(f => f.EndsWith(".conf", StringComparison.OrdinalIgnoreCase)
+                                 || f.EndsWith(".conf.dpapi", StringComparison.OrdinalIgnoreCase))
+                        .Select(f => {
+                            var name = Path.GetFileName(f);
+                            if (name.EndsWith(".conf.dpapi", StringComparison.OrdinalIgnoreCase))
+                                name = name.Substring(0, name.Length - ".conf.dpapi".Length);
+                            else
+                                name = Path.GetFileNameWithoutExtension(name);
+                            return name;
+                        })
+                        .OrderBy(n => n)
+                        .ToList();
+                    if (found.Count > 0)
+                    {
+                        if (_cfg.ConfDirectory != candidate)
+                            _cfg.ConfDirectory = candidate;
+                        return found;
+                    }
+                }
+                catch { }
+            }
+            return new List<string>();
+        }
+
+        private static List<string> GetTunnelsFromServices()
+        {
+            // WireGuard registers tunnel services as "WireGuardTunnel$<TunnelName>"
+            // These are visible in the SCM even without access to the conf files
+            try
+            {
+                return ServiceController.GetServices()
+                    .Where(s => s.ServiceName.StartsWith("WireGuardTunnel$", StringComparison.OrdinalIgnoreCase))
+                    .Select(s => s.ServiceName.Substring("WireGuardTunnel$".Length))
+                    .OrderBy(n => n)
+                    .ToList();
+            }
+            catch { return new List<string>(); }
         }
 
         // ── Constructor ──────────────────────────────────────────────────────
@@ -86,7 +205,8 @@ namespace WGWifiSwitcher
         public MainWindow()
         {
             InitializeComponent();
-            RulesListView.ItemsSource = _rules;
+            RulesListView.ItemsSource  = _rules;
+            TunnelsListView.ItemsSource = _tunnels;
 
             System.Windows.Application.Current.DispatcherUnhandledException += (s, e) =>
             {
@@ -185,7 +305,7 @@ namespace WGWifiSwitcher
             ApplyRules(wifi);
         }
 
-        private void UpdateStatusDisplay(string? wifi = null)
+        public void UpdateStatusDisplay(string? wifi = null)
         {
             wifi ??= GetCurrentSsid();
             WifiLabel.Text       = wifi ?? "Not connected";
@@ -204,6 +324,7 @@ namespace WGWifiSwitcher
                 : (SolidColorBrush)FindResource("Sub");
 
             ((App)System.Windows.Application.Current).UpdateTrayStatus(TunnelLabel.Text, active.Count > 0);
+            RefreshTunnelEntryStatuses();
         }
 
         private void RegisterWifiEvents()
@@ -292,8 +413,10 @@ namespace WGWifiSwitcher
                 return;
             }
 
+            LastError = "";
             bool ok = StartTunnel(target);
             Log("  Started " + target + ": " + (ok ? "OK" : "FAILED"), ok ? LogLevel.Ok : LogLevel.Warn);
+            if (!ok && !string.IsNullOrEmpty(LastError)) Log("  " + LastError, LogLevel.Warn);
             if (!ok && !string.IsNullOrEmpty(LastError)) Log("  sc.exe: " + LastError, LogLevel.Warn);
         }
 
@@ -301,72 +424,95 @@ namespace WGWifiSwitcher
 
         private static string SvcName(string t) => "WireGuardTunnel$" + t;
 
-        private static bool RunWg(string args)
+        internal static string LastError = "";
+
+        // Ensure WireGuardManager (the WireGuard system service) is running.
+        // This is installed by WireGuard independently of the GUI and manages all tunnels.
+        private static void EnsureManagerRunning()
         {
             try
             {
-                var psi = new ProcessStartInfo(WgExe, args)
-                    { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
-                using var p = Process.Start(psi)!;
-                p.WaitForExit(15000);
-                return p.ExitCode == 0;
+                using var mgr = new ServiceController("WireGuardManager");
+                if (mgr.Status == ServiceControllerStatus.Stopped ||
+                    mgr.Status == ServiceControllerStatus.Paused)
+                {
+                    mgr.Start();
+                    mgr.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(8));
+                }
             }
-            catch { return false; }
+            catch { /* manager may not exist on all installs — tunnel service handles it */ }
         }
 
         private static bool StartTunnel(string tunnel)
         {
-            // wireguard.exe /tunnel start does not require the WireGuard GUI to be running.
-            // It talks directly to the WireGuard system service (WireGuardManager / the tunnel service).
-            string err;
-            if (RunWg("/tunnel start " + tunnel, out err))
-                return true;
+            // Make sure the WireGuard manager service is up first
+            EnsureManagerRunning();
 
-            // Fallback: sc.exe start (works if service is already registered and just stopped)
-            bool ok = RunSc("start " + SvcName(tunnel), out err);
-            if (!ok) LastError = err;
-            return ok;
+            // Primary: ServiceController — works without GUI, requires only the system service
+            try
+            {
+                using var svc = new ServiceController(SvcName(tunnel));
+                if (svc.Status == ServiceControllerStatus.Running) return true;
+                svc.Start();
+                svc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(15));
+                return true;
+            }
+            catch (Exception ex1)
+            {
+                LastError = "ServiceController: " + ex1.Message;
+            }
+
+            // Fallback: wireguard.exe /installtunnelservice — registers and starts in one step
+            // Works if the service was never registered (e.g. after a reinstall)
+            string searched;
+            var conf = FindConfPath(tunnel, out searched);
+            if (conf != null)
+            {
+                string err2;
+                if (RunProcess(WgExe, "/installtunnelservice \"" + conf + "\"", out err2))
+                {
+                    System.Threading.Thread.Sleep(1500);
+                    return true;
+                }
+                LastError += "  wireguard.exe: " + err2;
+            }
+            else
+            {
+                LastError += "  No .conf found. Searched: " + searched;
+            }
+
+            return false;
         }
 
         private static bool StopTunnel(string tunnel)
         {
-            string err;
-            if (RunWg("/tunnel stop " + tunnel, out err))
+            // Primary: ServiceController
+            try
+            {
+                using var svc = new ServiceController(SvcName(tunnel));
+                if (svc.Status == ServiceControllerStatus.Stopped) return true;
+                svc.Stop();
+                svc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(15));
                 return true;
-
-            bool ok = RunSc("stop " + SvcName(tunnel), out err);
-            if (!ok) LastError = err;
-            return ok;
+            }
+            catch (Exception ex)
+            {
+                LastError = "ServiceController stop: " + ex.Message;
+                return false;
+            }
         }
 
-        internal static string LastError = "";
-
-        private static bool RunWg(string args, out string output)
+        private static bool RunProcess(string exe, string args, out string output)
         {
             output = "";
             try
             {
-                var psi = new ProcessStartInfo(WgExe, args)
+                var psi = new ProcessStartInfo(exe, args)
                     { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
                 using var p = Process.Start(psi)!;
                 output = p.StandardOutput.ReadToEnd().Trim() + p.StandardError.ReadToEnd().Trim();
                 p.WaitForExit(15000);
                 return p.ExitCode == 0;
-            }
-            catch (Exception ex) { output = ex.Message; return false; }
-        }
-
-        private static bool RunSc(string args, out string output)
-        {
-            output = "";
-            try
-            {
-                var psi = new ProcessStartInfo("sc.exe", args)
-                    { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
-                using var p = Process.Start(psi)!;
-                output = p.StandardOutput.ReadToEnd().Trim() + p.StandardError.ReadToEnd().Trim();
-                p.WaitForExit(15000);
-                return p.ExitCode == 0 || p.ExitCode == 1056;
             }
             catch (Exception ex) { output = ex.Message; return false; }
         }
@@ -456,7 +602,9 @@ namespace WGWifiSwitcher
                     default:           ActionNone.IsChecked     = true; break;
                 }
 
+                RefreshTunnelDropdowns();
                 DefaultTunnelBox.Text = _cfg.DefaultTunnel;
+                ConfDirBox.Text       = _cfg.ConfDirectory;  // update in case auto-detected
                 _loading = false;
             }
         }
@@ -482,7 +630,7 @@ namespace WGWifiSwitcher
 
         private void AddRule_Click(object sender, RoutedEventArgs e)
         {
-            var dlg = new Views.RuleDialog(GetCurrentSsid()) { Owner = this };
+            var dlg = new Views.RuleDialog(GetCurrentSsid(), tunnels: GetAvailableTunnels()) { Owner = this };
             if (dlg.ShowDialog() == true)
             {
                 _rules.Add(new TunnelRule { Ssid = dlg.ResultSsid, Tunnel = dlg.ResultTunnel });
@@ -495,7 +643,7 @@ namespace WGWifiSwitcher
         private void EditRule_Click(object sender, RoutedEventArgs e)
         {
             if (RulesListView.SelectedItem is not TunnelRule rule) return;
-            var dlg = new Views.RuleDialog(null, rule.Ssid, rule.Tunnel) { Owner = this };
+            var dlg = new Views.RuleDialog(null, rule.Ssid, rule.Tunnel, GetAvailableTunnels()) { Owner = this };
             if (dlg.ShowDialog() == true)
             {
                 rule.Ssid   = dlg.ResultSsid;
@@ -518,35 +666,19 @@ namespace WGWifiSwitcher
             }
         }
 
-        private void ActivateRule_Click(object sender, RoutedEventArgs e)
-        {
-            if (RulesListView.SelectedItem is not TunnelRule rule) return;
-            if (string.IsNullOrEmpty(rule.Tunnel))
-            {
-                Log("Manual: disconnecting all tunnels.", LogLevel.Info);
-                DisconnectAll();
-            }
-            else
-            {
-                Log("Manual: activating " + rule.Tunnel, LogLevel.Info);
-                SwitchTo(rule.Tunnel);
-            }
-        }
-
         private void RulesListView_SelectionChanged(object sender,
             System.Windows.Controls.SelectionChangedEventArgs e)
         {
             bool sel          = RulesListView.SelectedItem != null;
-            EditBtn.IsEnabled     = sel;
-            DeleteBtn.IsEnabled   = sel;
-            ActivateBtn.IsEnabled = sel;
+            EditBtn.IsEnabled   = sel;
+            DeleteBtn.IsEnabled = sel;
         }
 
-        private void RefreshTunnels_Click(object sender, RoutedEventArgs e)
+        private void AuthorLink_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            var active = GetActiveTunnelNames();
-            TunnelLabel.Text = active.Count > 0 ? string.Join(", ", active) : "\u2014";
-            Log("Active tunnels: " + (active.Count > 0 ? string.Join(", ", active) : "none"), LogLevel.Info);
+            try { Process.Start(new ProcessStartInfo("https://github.com/masselink/WGClientWifiSwitcher")
+                      { UseShellExecute = true }); }
+            catch { }
         }
 
         private void DefaultAction_Changed(object sender, RoutedEventArgs e)
@@ -558,11 +690,52 @@ namespace WGWifiSwitcher
             SaveConfig();
         }
 
-        private void DefaultTunnelBox_TextChanged(object sender,
-            System.Windows.Controls.TextChangedEventArgs e)
+        private void RefreshTunnelDropdowns()
+        {
+            var tunnels = GetAvailableTunnels();
+
+            Log("Tunnel discovery: found " + tunnels.Count + " tunnel(s)" +
+                (tunnels.Count > 0 ? ": " + string.Join(", ", tunnels) : "") +
+                "  [conf dir: " + (_cfg.ConfDirectory ?? "none") + "]", LogLevel.Info);
+
+            // Update DefaultTunnelBox ComboBox
+            var prev = DefaultTunnelBox.Text;
+            DefaultTunnelBox.Items.Clear();
+            foreach (var t in tunnels) DefaultTunnelBox.Items.Add(t);
+            DefaultTunnelBox.Text = prev;
+
+            // Update ConfDirBox to reflect auto-detected path
+            if (!string.IsNullOrWhiteSpace(_cfg.ConfDirectory))
+                ConfDirBox.Text = _cfg.ConfDirectory;
+
+            // Rebuild tunnel panel list
+            var active = GetActiveTunnelNames();
+            _tunnels.Clear();
+            foreach (var t in tunnels)
+                _tunnels.Add(new TunnelEntry { Name = t, Active = active.Contains(t) });
+
+            // Rebuild tray menu
+            ((App)System.Windows.Application.Current).RebuildTrayTunnelMenu(tunnels, active);
+        }
+
+        // Called from UpdateStatusDisplay to refresh live Active flags without rebuilding
+        private void RefreshTunnelEntryStatuses()
+        {
+            var active = GetActiveTunnelNames();
+            foreach (var e in _tunnels) e.Active = active.Contains(e.Name);
+            ((App)System.Windows.Application.Current).RebuildTrayTunnelMenu(
+                _tunnels.Select(t => t.Name).ToList(), active);
+        }
+
+        private void DefaultTunnelBox_SelectionChanged(object sender,
+            System.Windows.Controls.SelectionChangedEventArgs e)
         {
             if (_loading) return;
-            _cfg.DefaultTunnel = DefaultTunnelBox.Text.Trim();
+            if (DefaultTunnelBox.SelectedItem is string s)
+            {
+                _cfg.DefaultTunnel = s;
+                SaveConfig();
+            }
         }
 
         private void DefaultTunnelBox_LostFocus(object sender, RoutedEventArgs e)
@@ -570,6 +743,58 @@ namespace WGWifiSwitcher
             if (_loading) return;
             _cfg.DefaultTunnel = DefaultTunnelBox.Text.Trim();
             SaveConfig();
+        }
+
+        public void ManualStart(string tunnel)
+        {
+            Log("Manual connect: " + tunnel, LogLevel.Info);
+            LastError = "";
+            bool ok = StartTunnel(tunnel);
+            Log("  " + tunnel + ": " + (ok ? "connected" : "FAILED"), ok ? LogLevel.Ok : LogLevel.Warn);
+            if (!ok && !string.IsNullOrEmpty(LastError)) Log("  " + LastError, LogLevel.Warn);
+        }
+
+        public void ManualStop(string tunnel)
+        {
+            Log("Manual disconnect: " + tunnel, LogLevel.Info);
+            bool ok = StopTunnel(tunnel);
+            Log("  " + tunnel + ": " + (ok ? "disconnected" : "FAILED"), ok ? LogLevel.Ok : LogLevel.Warn);
+        }
+
+        private void TunnelToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as System.Windows.Controls.Button)?.DataContext is not TunnelEntry entry) return;
+            if (entry.Active) ManualStop(entry.Name);
+            else              ManualStart(entry.Name);
+            UpdateStatusDisplay();
+        }
+
+        private void ConfDirBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            _cfg.ConfDirectory = ConfDirBox.Text.Trim();
+            RefreshTunnelDropdowns();
+            SaveConfig();
+        }
+
+        private void BrowseConfDir_Click(object sender, RoutedEventArgs e)
+        {
+            using var dlg = new System.Windows.Forms.FolderBrowserDialog
+            {
+                Description        = "Select the folder containing your WireGuard .conf files",
+                UseDescriptionForTitle = true,
+                SelectedPath       = Directory.Exists(_cfg.ConfDirectory)
+                                        ? _cfg.ConfDirectory
+                                        : Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+            };
+            if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                _cfg.ConfDirectory = dlg.SelectedPath;
+                ConfDirBox.Text    = dlg.SelectedPath;
+                SaveConfig();
+                RefreshTunnelDropdowns();
+                Log("Config folder set to: " + dlg.SelectedPath, LogLevel.Ok);
+            }
         }
 
         // ── Logging ────────────────────────────────────────────────────────────
