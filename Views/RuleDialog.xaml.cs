@@ -1,7 +1,8 @@
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Input;
 
-namespace WGWifiSwitcher.Views
+namespace WGClientWifiSwitcher.Views
 {
     public partial class RuleDialog : Window
     {
@@ -10,17 +11,28 @@ namespace WGWifiSwitcher.Views
 
         private readonly string? _currentSsid;
 
-        public RuleDialog(string? currentSsid, string existingSsid = "", string existingTunnel = "")
+        public RuleDialog(string? currentSsid,
+                          string existingSsid   = "",
+                          string existingTunnel = "",
+                          List<string>? tunnels = null)
         {
             InitializeComponent();
             _currentSsid = currentSsid;
+
+            // Populate tunnel dropdown
+            TunnelBox.Items.Clear();
+            TunnelBox.Items.Add("");   // blank = disconnect
+            if (tunnels != null)
+                foreach (var t in tunnels) TunnelBox.Items.Add(t);
 
             if (!string.IsNullOrEmpty(existingSsid))
             {
                 DialogTitle.Text = "Edit Rule";
                 SsidBox.Text     = existingSsid;
-                TunnelBox.Text   = existingTunnel;
             }
+
+            // Set selected tunnel (editable ComboBox uses Text)
+            TunnelBox.Text = existingTunnel;
 
             SsidBox.Focus();
         }
@@ -30,7 +42,7 @@ namespace WGWifiSwitcher.Views
             if (!string.IsNullOrEmpty(_currentSsid))
                 SsidBox.Text = _currentSsid;
             else
-                System.Windows.MessageBox.Show(
+                MessageBox.Show(
                     "Not currently connected to a WiFi network.",
                     "No WiFi", MessageBoxButton.OK, MessageBoxImage.Information);
         }
@@ -40,7 +52,7 @@ namespace WGWifiSwitcher.Views
             var ssid = SsidBox.Text.Trim();
             if (string.IsNullOrEmpty(ssid))
             {
-                System.Windows.MessageBox.Show(
+                MessageBox.Show(
                     "Please enter a WiFi network name (SSID).",
                     "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                 SsidBox.Focus();

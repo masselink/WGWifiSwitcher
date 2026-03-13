@@ -1,10 +1,10 @@
 @echo off
-title WireGuard WiFi Switcher — Build
+title WireGuard Client and WiFi Switcher — Build
 setlocal
 
 echo.
 echo  ==========================================
-echo   WireGuard WiFi Switcher — EXE Builder
+echo   WireGuard Client and WiFi Switcher — EXE Builder
 echo  ==========================================
 echo.
 
@@ -21,7 +21,7 @@ echo.
 echo  Building...
 echo.
 
-dotnet build WGWifiSwitcher.csproj -c Release -o dist
+dotnet build WGClientWifiSwitcher.csproj -c Release -o dist
 
 if errorlevel 1 (
     echo.
@@ -29,13 +29,13 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-if exist "dist\WGWifiSwitcher.exe" (
+if exist "dist\WGClientWifiSwitcher.exe" (
     echo.
     echo  ==========================================
     echo   BUILD SUCCESSFUL
     echo  ==========================================
     echo.
-    echo   Output: dist\WGWifiSwitcher.exe
+    echo   Output: dist\WGClientWifiSwitcher.exe
     echo.
     echo   NOTE: The target machine needs .NET 8 Desktop Runtime:
     echo   https://dotnet.microsoft.com/download/dotnet/8.0

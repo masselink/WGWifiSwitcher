@@ -143,14 +143,14 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\HaroldMasselink\\Downloads\\WGWifiSwitcher\\WGWifiSwitcher.csproj",
-      "projectName": "WGWifiSwitcher",
-      "projectPath": "C:\\Users\\HaroldMasselink\\Downloads\\WGWifiSwitcher\\WGWifiSwitcher.csproj",
+      "projectUniqueName": "C:\\Users\\HaroldMasselink\\Downloads\\WGClientWifiSwitcher\\WGClientWifiSwitcher.csproj",
+      "projectName": "WGClientWifiSwitcher",
+      "projectPath": "C:\\Users\\HaroldMasselink\\Downloads\\WGClientWifiSwitcher\\WGClientWifiSwitcher.csproj",
       "packagesPath": "C:\\Users\\HaroldMasselink\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\HaroldMasselink\\Downloads\\WGWifiSwitcher\\obj\\",
+      "outputPath": "C:\\Users\\HaroldMasselink\\Downloads\\WGClientWifiSwitcher\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\HaroldMasselink\\Downloads\\WGWifiSwitcher\\NuGet.Config",
+        "C:\\Users\\HaroldMasselink\\Downloads\\WGClientWifiSwitcher\\NuGet.Config",
         "C:\\Users\\HaroldMasselink\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
