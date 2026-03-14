@@ -4,7 +4,7 @@
 
 A native Windows companion app for WireGuard that automatically connects and disconnects VPN tunnels based on your current WiFi network (SSID). Also works as a lightweight manual tunnel client — no need to open the WireGuard GUI for day-to-day use. Built with C# / WPF on .NET 8.
 
----
+<img width="818" height="476" alt="Screenshot 2026-03-14 132437" src="https://github.com/user-attachments/assets/00ac1e75-a3ba-47b1-b106-170d15386268" />
 
 ## Features
 
