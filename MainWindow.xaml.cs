@@ -56,12 +56,14 @@ namespace WGClientWifiSwitcher
             set { _active = value; OnProp(); OnProp(nameof(StatusText)); OnProp(nameof(StatusColor)); OnProp(nameof(ButtonLabel)); }
         }
 
-        public string StatusText  => _active ? "● Connected" : "○ Disconnected";
+        public string StatusText  => _active ? Lang.T("TunnelStatusConnected") : Lang.T("TunnelStatusDisconnected");
         public System.Windows.Media.SolidColorBrush StatusColor =>
             _active
                 ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(63, 185, 80))
                 : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(139, 148, 158));
-        public string ButtonLabel => _active ? "Disconnect" : "Connect";
+        public string ButtonLabel => _active ? Lang.T("TunnelBtnDisconnect") : Lang.T("TunnelBtnConnect");
+
+        public void RefreshLabels() { OnProp(nameof(StatusText)); OnProp(nameof(ButtonLabel)); }
 
         public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
         private void OnProp([System.Runtime.CompilerServices.CallerMemberName] string? n = null)
@@ -70,10 +72,11 @@ namespace WGClientWifiSwitcher
 
     public class AppConfig
     {
-        public List<TunnelRule> Rules         { get; set; } = new();
-        public string           DefaultAction { get; set; } = "none";
-        public string           DefaultTunnel { get; set; } = "";
+        public List<TunnelRule> Rules            { get; set; } = new();
+        public string           DefaultAction    { get; set; } = "none";
+        public string           DefaultTunnel    { get; set; } = "";
         public string           InstallDirectory { get; set; } = @"C:\Program Files\WireGuard";
+        public string           Language         { get; set; } = "en";
 
         [JsonIgnore]
         public string ConfDirectory => string.IsNullOrWhiteSpace(InstallDirectory)
@@ -84,6 +87,41 @@ namespace WGClientWifiSwitcher
         public string WgExePath => string.IsNullOrWhiteSpace(InstallDirectory)
             ? "wireguard"
             : Path.Combine(InstallDirectory, "wireguard.exe");
+
+        // ── Language persistence helpers ─────────────────────────────────────
+        private static readonly string ConfigPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "WGClientWifiSwitcher", "config.json");
+
+        public static void SaveLanguage(string code)
+        {
+            try
+            {
+                AppConfig cfg = new();
+                if (File.Exists(ConfigPath))
+                {
+                    var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    cfg = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(ConfigPath), opts) ?? new AppConfig();
+                }
+                cfg.Language = code;
+                Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
+                File.WriteAllText(ConfigPath,
+                    JsonSerializer.Serialize(cfg, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch { }
+        }
+
+        public static string LoadLanguage()
+        {
+            try
+            {
+                if (!File.Exists(ConfigPath)) return "en";
+                var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var cfg  = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(ConfigPath), opts);
+                return cfg?.Language ?? "en";
+            }
+            catch { return "en"; }
+        }
     }
 
     public partial class MainWindow : Window
@@ -292,16 +330,33 @@ namespace WGClientWifiSwitcher
 
             System.Windows.Application.Current.DispatcherUnhandledException += (s, e) =>
             {
-                Log("ERROR: " + e.Exception.Message, LogLevel.Warn);
+                LogRaw("ERROR: " + e.Exception.Message, LogLevel.Warn);
                 e.Handled = true;
             };
 
             Loaded += (_, _) =>
             {
+                // Populate language picker
+                foreach (var (code, name) in Lang.AvailableLanguages())
+                    LanguagePicker.Items.Add(new LangItem(code, name));
+                LanguagePicker.DisplayMemberPath = "Name";
+                LanguagePicker.SelectedItem = LanguagePicker.Items
+                    .Cast<LangItem>().FirstOrDefault(i => i.Code == Lang.Instance.CurrentCode)
+                    ?? LanguagePicker.Items.Cast<LangItem>().FirstOrDefault();
+
+                // Refresh TunnelEntry labels when language changes
+                Lang.Instance.LanguageChanged += (_, _) =>
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        foreach (var t in _tunnels) t.RefreshLabels();
+                        UpdateAdminLabel();
+                        RebuildLog();
+                    });
+
                 LoadConfig();
                 UpdateAdminLabel();
                 SetupTimer();
-                Log("Application started.", LogLevel.Info);
+                Log("LogAppStarted", LogLevel.Info);
             };
         }
 
@@ -376,12 +431,12 @@ namespace WGClientWifiSwitcher
             UpdateStatusDisplay(wifi);
             if (wifi != null)
             {
-                Log("Startup WiFi: " + wifi + " — applying rules.", LogLevel.Info);
+                Log("LogStartupWifi", LogLevel.Info, wifi);
                 ApplyRules(wifi);
             }
             else
             {
-                Log("Startup: no WiFi connection detected.", LogLevel.Info);
+                Log("LogStartupNoWifi", LogLevel.Info);
                 ApplyRules(null);
             }
         }
@@ -393,14 +448,14 @@ namespace WGClientWifiSwitcher
             UpdateStatusDisplay(wifi);
             if (wifi == _lastWifi) return;
             _lastWifi = wifi;
-            Log("WiFi changed to: " + (wifi ?? "disconnected"), LogLevel.Info);
+            Log("LogWifiChanged", LogLevel.Info, wifi ?? Lang.T("LogWifiDisconnected"));
             ApplyRules(wifi);
         }
 
         public void UpdateStatusDisplay(string? wifi = null)
         {
             wifi ??= GetCurrentSsid();
-            WifiLabel.Text       = wifi ?? "Not connected";
+            WifiLabel.Text       = wifi ?? Lang.T("StatusNone");
             WifiLabel.Foreground = wifi != null
                 ? (SolidColorBrush)FindResource("Text")
                 : (SolidColorBrush)FindResource("Sub");
@@ -424,7 +479,7 @@ namespace WGClientWifiSwitcher
             try
             {
                 uint result = WlanOpenHandle(2, IntPtr.Zero, out _, out _wlanHandle);
-                if (result != 0) { Log("WlanApi unavailable (code " + result + "), using timer fallback.", LogLevel.Warn); _wlanHandle = IntPtr.Zero; return; }
+                if (result != 0) { Log("LogWlanUnavailable", LogLevel.Warn, result); _wlanHandle = IntPtr.Zero; return; }
 
                 // Keep delegate alive — GC would collect it otherwise and crash
                 _wlanCallback = (ref WLAN_NOTIFICATION_DATA data, IntPtr ctx) =>
@@ -439,9 +494,9 @@ namespace WGClientWifiSwitcher
                 };
 
                 WlanRegisterNotification(_wlanHandle, WLAN_NOTIFICATION_SOURCE_ACM, true, _wlanCallback, IntPtr.Zero, IntPtr.Zero, out _);
-                Log("WiFi event monitoring active.", LogLevel.Ok);
+                Log("LogWlanActive", LogLevel.Ok);
             }
-            catch (Exception ex) { Log("WlanApi error: " + ex.Message + " — using timer fallback.", LogLevel.Warn); }
+            catch (Exception ex) { Log("LogWlanError", LogLevel.Warn, ex.Message); }
         }
 
         // ── Rule logic ───────────────────────────────────────────────────────
@@ -457,12 +512,12 @@ namespace WGClientWifiSwitcher
             {
                 if (string.IsNullOrEmpty(match.Tunnel))
                 {
-                    Log("Rule matched: " + ssid + " -> disconnect all", LogLevel.Ok);
+                    Log("LogRuleMatchedDisconnect", LogLevel.Ok, ssid ?? "");
                     DisconnectAll();
                 }
                 else
                 {
-                    Log("Rule matched: " + ssid + " -> activate " + match.Tunnel, LogLevel.Ok);
+                    Log("LogRuleMatchedActivate", LogLevel.Ok, ssid ?? "", match.Tunnel);
                     SwitchTo(match.Tunnel);
                 }
             }
@@ -471,15 +526,15 @@ namespace WGClientWifiSwitcher
                 switch (_cfg.DefaultAction)
                 {
                     case "disconnect":
-                        Log("No rule for " + (ssid ?? "disconnected") + " - disconnecting all.", LogLevel.Info);
+                        Log("LogNoRuleDisconnect", LogLevel.Info, ssid ?? Lang.T("LogWifiDisconnected"));
                         DisconnectAll();
                         break;
                     case "activate" when !string.IsNullOrEmpty(_cfg.DefaultTunnel):
-                        Log("No rule for " + (ssid ?? "disconnected") + " - activating default: " + _cfg.DefaultTunnel, LogLevel.Info);
+                        Log("LogNoRuleActivate", LogLevel.Info, ssid ?? Lang.T("LogWifiDisconnected"), _cfg.DefaultTunnel);
                         SwitchTo(_cfg.DefaultTunnel);
                         break;
                     default:
-                        Log("No rule for " + (ssid ?? "disconnected") + " - doing nothing.", LogLevel.Info);
+                        Log("LogNoRuleNothing", LogLevel.Info, ssid ?? Lang.T("LogWifiDisconnected"));
                         break;
                 }
             }
@@ -488,7 +543,7 @@ namespace WGClientWifiSwitcher
         private void DisconnectAll()
         {
             foreach (var name in GetActiveTunnelNames())
-                Log("  Stopped " + name + ": " + (StopTunnel(name) ? "OK" : "failed"), LogLevel.Warn);
+                Log("LogStoppedTunnel", LogLevel.Warn, name, StopTunnel(name) ? Lang.T("LogStoppedTunnelOk") : Lang.T("LogStoppedTunnelFail"));
         }
 
         private void SwitchTo(string target)
@@ -496,20 +551,19 @@ namespace WGClientWifiSwitcher
             foreach (var name in GetActiveTunnelNames().Where(n => n != target))
             {
                 StopTunnel(name);
-                Log("  Stopped " + name, LogLevel.Warn);
+                Log("LogStoppedTunnel", LogLevel.Warn, name, Lang.T("LogStoppedTunnelOk"));
             }
 
             if (GetTunnelStatus(target))
             {
-                Log("  " + target + " already active.", LogLevel.Info);
+                Log("LogAlreadyActive", LogLevel.Info, target);
                 return;
             }
 
             LastError = "";
             bool ok = StartTunnel(target);
-            Log("  Started " + target + ": " + (ok ? "OK" : "FAILED"), ok ? LogLevel.Ok : LogLevel.Warn);
-            if (!ok && !string.IsNullOrEmpty(LastError)) Log("  " + LastError, LogLevel.Warn);
-            if (!ok && !string.IsNullOrEmpty(LastError)) Log("  sc.exe: " + LastError, LogLevel.Warn);
+            Log("LogStartedTunnel", ok ? LogLevel.Ok : LogLevel.Warn, target, ok ? Lang.T("LogTunnelOk") : Lang.T("LogTunnelFailed"));
+            if (!ok && !string.IsNullOrEmpty(LastError)) LogRaw("  " + LastError, LogLevel.Warn);
         }
 
         // ── WireGuard helpers ────────────────────────────────────────────────
@@ -638,26 +692,46 @@ namespace WGClientWifiSwitcher
         {
             try
             {
-                var psi = new ProcessStartInfo("netsh", "wlan show interfaces")
-                    { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true };
-                using var proc = Process.Start(psi)!;
-                var output = proc.StandardOutput.ReadToEnd();
-                proc.WaitForExit(3000);
-                foreach (var line in output.Split('\n'))
+                // netsh on modern Windows outputs UTF-8 when the active code page is UTF-8
+                // (chcp 65001), but falls back to the OEM codepage on older systems.
+                // We try UTF-8 first; if the result contains the replacement character
+                // (U+FFFD) we re-run with the OEM codepage so special chars in SSIDs
+                // (em dash, accented letters, etc.) are decoded correctly.
+                var ssid = RunNetsh(System.Text.Encoding.UTF8);
+                if (ssid != null && ssid.Contains('\uFFFD'))
+                    ssid = RunNetsh(System.Text.Encoding.GetEncoding(
+                        System.Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage));
+                return ssid;
+            }
+            catch { }
+            return null;
+        }
+
+        private static string? RunNetsh(System.Text.Encoding enc)
+        {
+            var psi = new ProcessStartInfo("netsh", "wlan show interfaces")
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute        = false,
+                CreateNoWindow         = true,
+                StandardOutputEncoding = enc
+            };
+            using var proc = Process.Start(psi)!;
+            var output = proc.StandardOutput.ReadToEnd();
+            proc.WaitForExit(3000);
+            foreach (var line in output.Split('\n'))
+            {
+                var t = line.Trim();
+                if (t.StartsWith("SSID") && !t.Contains("BSSID"))
                 {
-                    var t = line.Trim();
-                    if (t.StartsWith("SSID") && !t.Contains("BSSID"))
+                    var idx = t.IndexOf(':');
+                    if (idx >= 0)
                     {
-                        var idx = t.IndexOf(':');
-                        if (idx >= 0)
-                        {
-                            var ssid = t.Substring(idx + 1).Trim();
-                            if (!string.IsNullOrEmpty(ssid)) return ssid;
-                        }
+                        var ssid = t.Substring(idx + 1).Trim();
+                        if (!string.IsNullOrEmpty(ssid)) return ssid;
                     }
                 }
             }
-            catch { }
             return null;
         }
 
@@ -676,7 +750,7 @@ namespace WGClientWifiSwitcher
             }
             catch (Exception ex)
             {
-                Log("Config load error: " + ex.Message, LogLevel.Warn);
+                Log("LogConfigLoadError", LogLevel.Warn, ex.Message);
                 _cfg = new AppConfig();
             }
             finally
@@ -708,11 +782,11 @@ namespace WGClientWifiSwitcher
                 Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
                 File.WriteAllText(ConfigPath,
                     JsonSerializer.Serialize(_cfg, new JsonSerializerOptions { WriteIndented = true }));
-                Log("Config saved (" + _cfg.Rules.Count + " rule(s))", LogLevel.Ok);
+                Log("LogConfigSaved", LogLevel.Ok, _cfg.Rules.Count);
             }
             catch (Exception ex)
             {
-                Log("Save error: " + ex.Message, LogLevel.Warn);
+                Log("LogConfigSaveError", LogLevel.Warn, ex.Message);
                 System.Windows.MessageBox.Show("Failed to save:\n" + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -726,8 +800,8 @@ namespace WGClientWifiSwitcher
             {
                 _rules.Add(new TunnelRule { Ssid = dlg.ResultSsid, Tunnel = dlg.ResultTunnel });
                 SaveConfig();
-                Log("Rule added: " + dlg.ResultSsid + " -> " +
-                    (string.IsNullOrEmpty(dlg.ResultTunnel) ? "disconnect" : dlg.ResultTunnel), LogLevel.Ok);
+                Log("LogRuleAdded", LogLevel.Ok, dlg.ResultSsid,
+                    string.IsNullOrEmpty(dlg.ResultTunnel) ? Lang.T("TunnelBtnDisconnect") : dlg.ResultTunnel);
             }
         }
 
@@ -740,20 +814,22 @@ namespace WGClientWifiSwitcher
                 rule.Ssid   = dlg.ResultSsid;
                 rule.Tunnel = dlg.ResultTunnel;
                 SaveConfig();
-                Log("Rule updated: " + dlg.ResultSsid + " -> " +
-                    (string.IsNullOrEmpty(dlg.ResultTunnel) ? "disconnect" : dlg.ResultTunnel), LogLevel.Info);
+                Log("LogRuleUpdated", LogLevel.Info, dlg.ResultSsid,
+                    string.IsNullOrEmpty(dlg.ResultTunnel) ? Lang.T("TunnelBtnDisconnect") : dlg.ResultTunnel);
             }
         }
 
         private void DeleteRule_Click(object sender, RoutedEventArgs e)
         {
             if (RulesListView.SelectedItem is not TunnelRule rule) return;
-            if (System.Windows.MessageBox.Show("Delete rule for " + rule.Ssid + "?", "Delete Rule",
+            if (System.Windows.MessageBox.Show(
+                    Lang.T("RuleDialogSsidRequired") + "\n" + rule.Ssid + "?",
+                    Lang.T("BtnDeleteRule"),
                     MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 _rules.Remove(rule);
                 SaveConfig();
-                Log("Rule deleted: " + rule.Ssid, LogLevel.Warn);
+                Log("LogRuleDeleted", LogLevel.Warn, rule.Ssid);
             }
         }
 
@@ -785,9 +861,9 @@ namespace WGClientWifiSwitcher
         {
             var tunnels = GetAvailableTunnels();
 
-            Log("Tunnel discovery: found " + tunnels.Count + " tunnel(s)" +
-                (tunnels.Count > 0 ? ": " + string.Join(", ", tunnels) : "") +
-                "  [install dir: " + (_cfg.InstallDirectory ?? "none") + "]", LogLevel.Info);
+            LogRaw(Lang.T("LogTunnelDiscovery", tunnels.Count) +
+                (tunnels.Count > 0 ? Lang.T("LogTunnelDiscoveryList", string.Join(", ", tunnels)) : "") +
+                Lang.T("LogInstallDir", _cfg.InstallDirectory ?? "none"), LogLevel.Info);
 
             // Update DefaultTunnelBox ComboBox
             var prev = DefaultTunnelBox.Text;
@@ -834,18 +910,18 @@ namespace WGClientWifiSwitcher
 
         public void ManualStart(string tunnel)
         {
-            Log("Manual connect: " + tunnel, LogLevel.Info);
+            Log("LogManualConnect", LogLevel.Info, tunnel);
             LastError = "";
             bool ok = StartTunnel(tunnel);
-            Log("  " + tunnel + ": " + (ok ? "connected" : "FAILED"), ok ? LogLevel.Ok : LogLevel.Warn);
-            if (!ok && !string.IsNullOrEmpty(LastError)) Log("  " + LastError, LogLevel.Warn);
+            Log("LogManualConnectResult", ok ? LogLevel.Ok : LogLevel.Warn, tunnel, ok ? Lang.T("TunnelStatusConnected") : Lang.T("LogTunnelFailed"));
+            if (!ok && !string.IsNullOrEmpty(LastError)) LogRaw("  " + LastError, LogLevel.Warn);
         }
 
         public void ManualStop(string tunnel)
         {
-            Log("Manual disconnect: " + tunnel, LogLevel.Info);
+            Log("LogManualDisconnect", LogLevel.Info, tunnel);
             bool ok = StopTunnel(tunnel);
-            Log("  " + tunnel + ": " + (ok ? "disconnected" : "FAILED"), ok ? LogLevel.Ok : LogLevel.Warn);
+            Log("LogManualConnectResult", ok ? LogLevel.Ok : LogLevel.Warn, tunnel, ok ? Lang.T("TunnelStatusDisconnected") : Lang.T("LogTunnelFailed"));
         }
 
         private void TunnelToggle_Click(object sender, RoutedEventArgs e)
@@ -863,13 +939,13 @@ namespace WGClientWifiSwitcher
                 var exe = WgExe;
                 if (!File.Exists(exe))
                 {
-                    Log("wireguard.exe not found at: " + exe, LogLevel.Warn);
+                    Log("LogGuiNotFound", LogLevel.Warn, exe);
                     return;
                 }
                 Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true });
-                Log("Opened WireGuard GUI.", LogLevel.Ok);
+                Log("LogOpenedGui", LogLevel.Ok);
             }
-            catch (Exception ex) { Log("Failed to open WireGuard GUI: " + ex.Message, LogLevel.Warn); }
+            catch (Exception ex) { Log("LogGuiError", LogLevel.Warn, ex.Message); }
         }
 
         private void ShowWireGuardLog_Click(object sender, RoutedEventArgs e)
@@ -879,7 +955,7 @@ namespace WGClientWifiSwitcher
                 var exe = WgExe;
                 if (!File.Exists(exe))
                 {
-                    Log("wireguard.exe not found at: " + exe, LogLevel.Warn);
+                    Log("LogGuiNotFound", LogLevel.Warn, exe);
                     return;
                 }
 
@@ -909,7 +985,7 @@ namespace WGClientWifiSwitcher
                 // Title bar
                 var titleText = new TextBlock
                 {
-                    Text       = "WireGuard Log",
+                    Text       = Lang.T("LogWindowTitle"),
                     FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                     FontSize   = 13,
                     FontWeight = FontWeights.Bold,
@@ -920,7 +996,7 @@ namespace WGClientWifiSwitcher
 
                 var tailLabel = new TextBlock
                 {
-                    Text       = "● last 24h + live",
+                    Text       = Lang.T("LogWindowLive"),
                     FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                     FontSize   = 10,
                     Foreground = (SolidColorBrush)FindResource("Green"),
@@ -973,7 +1049,7 @@ namespace WGClientWifiSwitcher
 
                 var win = new Window
                 {
-                    Title               = "WireGuard Log",
+                    Title               = Lang.T("LogWindowTitle"),
                     Width               = 920,
                     Height              = 620,
                     Background          = bgBrush,
@@ -1052,7 +1128,7 @@ namespace WGClientWifiSwitcher
                 {
                     Dispatcher.BeginInvoke(() =>
                     {
-                        tailLabel.Text       = "● stopped";
+                        tailLabel.Text       = Lang.T("LogWindowStopped");
                         tailLabel.Foreground = (SolidColorBrush)FindResource("Sub");
                     });
                 };
@@ -1068,9 +1144,9 @@ namespace WGClientWifiSwitcher
                 };
 
                 win.Show();
-                Log("WireGuard log opened (last 24h history + live tail).", LogLevel.Ok);
+                Log("LogLogOpened", LogLevel.Ok);
             }
-            catch (Exception ex) { Log("Failed to read WireGuard log: " + ex.Message, LogLevel.Warn); }
+            catch (Exception ex) { Log("LogLogError", LogLevel.Warn, ex.Message); }
         }
 
         // ── Logging ────────────────────────────────────────────────────────────
@@ -1081,18 +1157,66 @@ namespace WGClientWifiSwitcher
         private static readonly SolidColorBrush LWarn = new(Color.FromRgb(247, 129, 102));
         private static readonly SolidColorBrush LTime = new(Color.FromRgb(48,   54,  61));
 
-        private void Log(string message, LogLevel level)
+        // A log entry is either a translatable key+args pair, or a raw (external) string.
+        private record LogEntry(DateTime Time, LogLevel Level, string? Key, object[]? Args, string? Raw);
+
+        private readonly List<LogEntry> _logEntries = new();
+        private const int MaxLogEntries = 300;
+
+        // Log a translatable message by key (app-generated messages)
+        private void Log(string key, LogLevel level, params object[] args)
+        {
+            var entry = new LogEntry(DateTime.Now, level, key, args, null);
+            _logEntries.Insert(0, entry);
+            if (_logEntries.Count > MaxLogEntries) _logEntries.RemoveAt(_logEntries.Count - 1);
+            RenderLogEntry(entry, prepend: true);
+        }
+
+        // Log a raw untranslatable string (e.g. OS error messages, WireGuard internals)
+        private void LogRaw(string message, LogLevel level)
+        {
+            var entry = new LogEntry(DateTime.Now, level, null, null, message);
+            _logEntries.Insert(0, entry);
+            if (_logEntries.Count > MaxLogEntries) _logEntries.RemoveAt(_logEntries.Count - 1);
+            RenderLogEntry(entry, prepend: true);
+        }
+
+        private void RenderLogEntry(LogEntry entry, bool prepend)
         {
             try
             {
+                var text = entry.Key != null
+                    ? (entry.Args?.Length > 0 ? Lang.T(entry.Key, entry.Args) : Lang.T(entry.Key))
+                    : (entry.Raw ?? "");
+
                 var para = new Paragraph { Margin = new Thickness(0) };
-                para.Inlines.Add(new Run(DateTime.Now.ToString("HH:mm:ss") + "  ") { Foreground = LTime });
-                para.Inlines.Add(new Run(message) { Foreground = level switch { LogLevel.Ok => LOk, LogLevel.Warn => LWarn, _ => LInfo } });
-                if (LogDocument.Blocks.Count > 300) LogDocument.Blocks.Remove(LogDocument.Blocks.LastBlock);
-                if (LogDocument.Blocks.FirstBlock != null)
-                    LogDocument.Blocks.InsertBefore(LogDocument.Blocks.FirstBlock, para);
+                para.Inlines.Add(new Run(entry.Time.ToString("HH:mm:ss") + "  ") { Foreground = LTime });
+                para.Inlines.Add(new Run(text) { Foreground = entry.Level switch
+                    { LogLevel.Ok => LOk, LogLevel.Warn => LWarn, _ => LInfo } });
+
+                if (prepend)
+                {
+                    if (LogDocument.Blocks.FirstBlock != null)
+                        LogDocument.Blocks.InsertBefore(LogDocument.Blocks.FirstBlock, para);
+                    else
+                        LogDocument.Blocks.Add(para);
+                }
                 else
+                {
                     LogDocument.Blocks.Add(para);
+                }
+            }
+            catch { }
+        }
+
+        // Rebuild the entire log display in the current language
+        private void RebuildLog()
+        {
+            try
+            {
+                LogDocument.Blocks.Clear();
+                foreach (var entry in _logEntries)
+                    RenderLogEntry(entry, prepend: false);
             }
             catch { }
         }
@@ -1101,6 +1225,13 @@ namespace WGClientWifiSwitcher
 
         private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         { if (e.LeftButton == MouseButtonState.Pressed) DragMove(); }
+
+        private void LanguagePicker_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_loading) return;
+            if (LanguagePicker.SelectedItem is LangItem item)
+                Lang.Instance.Load(item.Code);
+        }
 
         private void CloseBtn_Click(object sender, RoutedEventArgs e)    => Hide();
         private void Window_Closing(object sender, CancelEventArgs e)
@@ -1120,8 +1251,17 @@ namespace WGClientWifiSwitcher
             bool admin = new System.Security.Principal.WindowsPrincipal(
                 System.Security.Principal.WindowsIdentity.GetCurrent())
                 .IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
-            AdminLabel.Text       = admin ? "\u25cf ADMIN" : "\u26a0 NOT ADMIN";
+            AdminLabel.Text       = admin ? Lang.T("LogAdminYes") : Lang.T("LogAdminNo");
             AdminLabel.Foreground = admin ? (SolidColorBrush)FindResource("Green") : (SolidColorBrush)FindResource("Red");
         }
+    }
+
+    // Simple data class for the language picker ComboBox
+    public class LangItem
+    {
+        public string Code { get; }
+        public string Name { get; }
+        public LangItem(string code, string name) { Code = code; Name = name; }
+        public override string ToString() => Name;
     }
 }

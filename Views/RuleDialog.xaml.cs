@@ -27,13 +27,11 @@ namespace WGClientWifiSwitcher.Views
 
             if (!string.IsNullOrEmpty(existingSsid))
             {
-                DialogTitle.Text = "Edit Rule";
+                DialogTitle.Text = Lang.T("RuleDialogEditTitle");
                 SsidBox.Text     = existingSsid;
             }
 
-            // Set selected tunnel (editable ComboBox uses Text)
             TunnelBox.Text = existingTunnel;
-
             SsidBox.Focus();
         }
 
@@ -43,8 +41,9 @@ namespace WGClientWifiSwitcher.Views
                 SsidBox.Text = _currentSsid;
             else
                 MessageBox.Show(
-                    "Not currently connected to a WiFi network.",
-                    "No WiFi", MessageBoxButton.OK, MessageBoxImage.Information);
+                    Lang.T("RuleDialogNoWifi"),
+                    Lang.T("RuleDialogNoWifiTitle"),
+                    MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)
@@ -53,13 +52,14 @@ namespace WGClientWifiSwitcher.Views
             if (string.IsNullOrEmpty(ssid))
             {
                 MessageBox.Show(
-                    "Please enter a WiFi network name (SSID).",
-                    "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    Lang.T("RuleDialogSsidRequired"),
+                    Lang.T("RuleDialogValidationTitle"),
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
                 SsidBox.Focus();
                 return;
             }
             ResultSsid   = ssid;
-            ResultTunnel = TunnelBox.Text.Trim();  // empty = disconnect
+            ResultTunnel = TunnelBox.Text.Trim();
             DialogResult = true;
         }
 

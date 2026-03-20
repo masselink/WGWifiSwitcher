@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
+using System.Threading;
 using System.Windows;
 using WinForms = System.Windows.Forms;
 
@@ -9,20 +10,45 @@ namespace WGClientWifiSwitcher
 {
     public partial class App : System.Windows.Application
     {
-        private WinForms.NotifyIcon?     _trayIcon;
+        private WinForms.NotifyIcon?      _trayIcon;
         private WinForms.ContextMenuStrip? _trayMenu;
         private WinForms.ToolStripMenuItem? _tunnelMenuHeader;
         private MainWindow? _mainWindow;
+        private Mutex?      _instanceMutex;
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
+            // ── 1. Load language immediately — needed by all dialogs below ───
+            Lang.Instance.Load(AppConfig.LoadLanguage());
+
+            // ── 2. Single-instance check (mutex) ────────────────────────────
+            bool isNewInstance = false;
+            try
+            {
+                _instanceMutex = new Mutex(
+                    initiallyOwned: true,
+                    name: "Global\\WGClientWifiSwitcher_SingleInstance",
+                    out isNewInstance);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Mutex exists but belongs to a different session/user — treat as already running
+                isNewInstance = false;
+            }
+
+            if (!isNewInstance)
+            {
+                ShowAlreadyRunning();
+                Shutdown();
+                return;
+            }
+
+            // ── 3. Dependency check ──────────────────────────────────────────
             if (!CheckDependencies()) return;
 
-            // app.manifest already requests requireAdministrator, so by the time
-            // we get here the process is already elevated (or the user cancelled UAC).
-            // No runtime re-launch needed — just start.
+            // ── 4. Launch main window ────────────────────────────────────────
             _mainWindow = new MainWindow();
 
             // Show() then Activate() ensures the window comes to foreground
@@ -46,8 +72,7 @@ namespace WGClientWifiSwitcher
             // Check WireGuard is installed
             var wgExe = WGClientWifiSwitcher.MainWindow.FindWireGuardExe();
             if (wgExe == null)
-                issues.Add(("WireGuard not found",
-                    "Could not locate wireguard.exe.\n\nInstall WireGuard for Windows from wireguard.com/install and relaunch."));
+                issues.Add((Lang.T("DepWireGuardTitle"), Lang.T("DepWireGuardDetail")));
 
             if (issues.Count == 0) return true;
 
@@ -77,7 +102,7 @@ namespace WGClientWifiSwitcher
             // Header
             stack.Children.Add(new System.Windows.Controls.TextBlock
             {
-                Text       = "⚠  Missing dependencies",
+                Text       = "⚠  " + Lang.T("DepMissingTitle"),
                 FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize   = 15, FontWeight = FontWeights.Bold,
                 Foreground = Br(warn),
@@ -86,7 +111,7 @@ namespace WGClientWifiSwitcher
 
             stack.Children.Add(new System.Windows.Controls.TextBlock
             {
-                Text         = "WireGuard Client and WiFi Switcher could not start because the following requirements are not met:",
+                Text         = Lang.T("DepMissingIntro"),
                 FontFamily   = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize     = 11, Foreground = Br(subC),
                 TextWrapping = System.Windows.TextWrapping.Wrap,
@@ -131,14 +156,14 @@ namespace WGClientWifiSwitcher
             };
             linkPanel.Children.Add(new System.Windows.Controls.TextBlock
             {
-                Text = "For installation instructions visit: ",
+                Text = Lang.T("DepGitHubPrompt"),
                 FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize = 10, Foreground = Br(subC),
                 VerticalAlignment = VerticalAlignment.Center
             });
             var linkBtn = new System.Windows.Controls.Button
             {
-                Content         = "github.com/masselink/WGClientWifiSwitcher",
+                Content         = Lang.T("DepGitHubLink"),
                 FontFamily      = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize        = 10,
                 Foreground      = Br(accent),
@@ -157,7 +182,7 @@ namespace WGClientWifiSwitcher
             // Close button
             var closeBtn = new System.Windows.Controls.Button
             {
-                Content         = "Close",
+                Content         = Lang.T("BtnClose"),
                 FontFamily      = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize        = 11,
                 Foreground      = Br(textC),
@@ -208,7 +233,7 @@ namespace WGClientWifiSwitcher
         {
             _trayIcon = new WinForms.NotifyIcon
             {
-                Text = "WireGuard Client and WiFi Switcher v0.8 beta",
+                Text = "WireGuard Client and WiFi Switcher v1.0",
                 Visible = true,
                 Icon = TrayIconHelper.CreateIcon()
             };
@@ -220,19 +245,19 @@ namespace WGClientWifiSwitcher
             _trayMenu.ShowCheckMargin = false;
             _trayMenu.Renderer = new DarkMenuRenderer();
 
-            var showItem = new WinForms.ToolStripMenuItem("Show Window");
+            var showItem = new WinForms.ToolStripMenuItem(Lang.T("TrayShowWindow"));
             showItem.Font = new System.Drawing.Font("Consolas", 9f, System.Drawing.FontStyle.Bold);
             showItem.Click += (_, _) => ShowMainWindow();
             _trayMenu.Items.Add(showItem);
             _trayMenu.Items.Add(new WinForms.ToolStripSeparator());
 
             // Tunnel submenu placeholder — rebuilt by RebuildTrayTunnelMenu
-            _tunnelMenuHeader = new WinForms.ToolStripMenuItem("Tunnels");
+            _tunnelMenuHeader = new WinForms.ToolStripMenuItem(Lang.T("TrayTunnels"));
             _tunnelMenuHeader.Font = new System.Drawing.Font("Consolas", 9f, System.Drawing.FontStyle.Bold);
             _trayMenu.Items.Add(_tunnelMenuHeader);
             _trayMenu.Items.Add(new WinForms.ToolStripSeparator());
 
-            var exitItem = new WinForms.ToolStripMenuItem("Exit");
+            var exitItem = new WinForms.ToolStripMenuItem(Lang.T("TrayExit"));
             exitItem.Font = new System.Drawing.Font("Consolas", 9f);
             exitItem.Click += (_, _) => { _trayIcon!.Visible = false; Shutdown(); };
             _trayMenu.Items.Add(exitItem);
@@ -253,8 +278,8 @@ namespace WGClientWifiSwitcher
         {
             if (_trayIcon == null) return;
             _trayIcon.Text = active
-                ? $"WG Client WiFi Switcher \u2014 {tunnelName} active"
-                : "WG Client WiFi Switcher \u2014 No tunnel active";
+                ? Lang.T("TrayActive", tunnelName)
+                : Lang.T("TrayIdle");
             _trayIcon.Icon = TrayIconHelper.CreateIcon(active);
         }
 
@@ -265,15 +290,14 @@ namespace WGClientWifiSwitcher
 
             if (tunnels.Count == 0)
             {
-                var none = new WinForms.ToolStripMenuItem("No tunnels found");
+                var none = new WinForms.ToolStripMenuItem(Lang.T("TrayNoTunnels"));
                 none.Font    = new System.Drawing.Font("Consolas", 9f);
                 none.Enabled = false;
                 _tunnelMenuHeader.DropDownItems.Add(none);
                 return;
             }
 
-            // Disconnect all entry
-            var disconnectAll = new WinForms.ToolStripMenuItem("Disconnect All");
+            var disconnectAll = new WinForms.ToolStripMenuItem(Lang.T("TrayDisconnectAll"));
             disconnectAll.Font = new System.Drawing.Font("Consolas", 9f, System.Drawing.FontStyle.Bold);
             disconnectAll.Click += (_, _) =>
             {
@@ -342,7 +366,133 @@ namespace WGClientWifiSwitcher
         protected override void OnExit(ExitEventArgs e)
         {
             _trayIcon?.Dispose();
+            try { _instanceMutex?.ReleaseMutex(); } catch { }
+            _instanceMutex?.Dispose();
             base.OnExit(e);
+        }
+
+        private void ShowAlreadyRunning()
+        {
+            // colours — defined inline since App resources aren't loaded yet
+            var bg     = System.Windows.Media.Color.FromRgb(13,  17,  23);
+            var panel  = System.Windows.Media.Color.FromRgb(22,  27,  34);
+            var border = System.Windows.Media.Color.FromRgb(48,  54,  61);
+            var accent = System.Windows.Media.Color.FromRgb(88, 166, 255);
+            var textC  = System.Windows.Media.Color.FromRgb(230, 237, 243);
+            var subC   = System.Windows.Media.Color.FromRgb(139, 148, 158);
+            var warn   = System.Windows.Media.Color.FromRgb(247, 129, 102);
+
+            System.Windows.Media.Brush Br(System.Windows.Media.Color c) =>
+                new System.Windows.Media.SolidColorBrush(c);
+
+            var stack = new System.Windows.Controls.StackPanel
+                { Margin = new Thickness(28, 20, 28, 24) };
+
+            stack.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text       = "⚠  " + Lang.T("AlreadyRunningTitle"),
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontSize   = 15, FontWeight = FontWeights.Bold,
+                Foreground = Br(warn),
+                Margin     = new Thickness(0, 0, 0, 14)
+            });
+
+            stack.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text         = Lang.T("AlreadyRunningMessage"),
+                FontFamily   = new System.Windows.Media.FontFamily("Consolas"),
+                FontSize     = 11, Foreground = Br(subC),
+                TextWrapping = System.Windows.TextWrapping.Wrap,
+                Margin       = new Thickness(0, 0, 0, 20)
+            });
+
+            var closeBtn = new System.Windows.Controls.Button
+            {
+                Content           = Lang.T("BtnOk"),
+                FontFamily        = new System.Windows.Media.FontFamily("Consolas"),
+                FontSize          = 11,
+                Foreground        = Br(textC),
+                Background        = Br(panel),
+                BorderBrush       = Br(border),
+                BorderThickness   = new Thickness(1),
+                Padding           = new Thickness(28, 6, 28, 6),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Cursor            = System.Windows.Input.Cursors.Hand
+            };
+            stack.Children.Add(closeBtn);
+
+            var outerBorder = new System.Windows.Controls.Border
+            {
+                Background      = Br(bg),
+                BorderBrush     = Br(border),
+                BorderThickness = new Thickness(1),
+                CornerRadius    = new CornerRadius(6),
+                Child           = stack
+            };
+
+            // Title bar
+            var titleBar = new System.Windows.Controls.Border
+            {
+                Background = Br(panel),
+                Height     = 40,
+                Child      = new System.Windows.Controls.TextBlock
+                {
+                    Text              = "WireGuard Client and WiFi Switcher",
+                    FontFamily        = new System.Windows.Media.FontFamily("Consolas"),
+                    FontSize          = 12, FontWeight = FontWeights.Bold,
+                    Foreground        = Br(accent),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin            = new Thickness(14, 0, 0, 0)
+                }
+            };
+
+            var root = new System.Windows.Controls.Grid();
+            root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition
+                { Height = System.Windows.GridLength.Auto });
+            root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition
+                { Height = System.Windows.GridLength.Auto });
+            System.Windows.Controls.Grid.SetRow(titleBar, 0);
+            System.Windows.Controls.Grid.SetRow(outerBorder, 1);
+
+            // Wrap title bar inside the outer border's corner radius
+            var wrapper = new System.Windows.Controls.Border
+            {
+                Background      = Br(bg),
+                BorderBrush     = Br(border),
+                BorderThickness = new Thickness(1),
+                CornerRadius    = new CornerRadius(6)
+            };
+            var wrapGrid = new System.Windows.Controls.Grid();
+            wrapGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition
+                { Height = System.Windows.GridLength.Auto });
+            wrapGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition
+                { Height = System.Windows.GridLength.Auto });
+            System.Windows.Controls.Grid.SetRow(titleBar, 0);
+            System.Windows.Controls.Grid.SetRow(stack, 1);
+            wrapGrid.Children.Add(titleBar);
+            wrapGrid.Children.Add(stack);
+            wrapper.Child = wrapGrid;
+
+            var win = new Window
+            {
+                Title                 = "WireGuard Client and WiFi Switcher — Already running",
+                Width                 = 440,
+                SizeToContent         = SizeToContent.Height,
+                WindowStyle           = WindowStyle.None,
+                AllowsTransparency    = true,
+                Background            = System.Windows.Media.Brushes.Transparent,
+                ResizeMode            = ResizeMode.NoResize,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                Content               = wrapper
+            };
+
+            titleBar.MouseLeftButtonDown += (_, mev) =>
+            {
+                if (mev.LeftButton == System.Windows.Input.MouseButtonState.Pressed) win.DragMove();
+            };
+            closeBtn.Click += (_, _) => win.Close();
+
+            win.ShowDialog();
         }
     }
 

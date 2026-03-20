@@ -1,7 +1,8 @@
 <Window x:Class="WGClientWifiSwitcher.Views.RuleDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Add Rule"
+        xmlns:local="clr-namespace:WGClientWifiSwitcher"
+        Title="{Binding [RuleDialogAddTitle], Source={x:Static local:Lang.Instance}}"
         Height="240" Width="420"
         ResizeMode="NoResize"
         WindowStyle="None"
@@ -23,7 +24,8 @@
             <Border Grid.Row="0" Background="{StaticResource Bg}"
                     CornerRadius="6,6,0,0"
                     MouseLeftButtonDown="Title_MouseDown">
-                <TextBlock x:Name="DialogTitle" Text="Add Rule"
+                <TextBlock x:Name="DialogTitle"
+                           Text="{Binding [RuleDialogAddTitle], Source={x:Static local:Lang.Instance}}"
                            FontFamily="Consolas" FontSize="12" FontWeight="Bold"
                            Foreground="{StaticResource Accent}"
                            Margin="16,0" VerticalAlignment="Center"/>
@@ -44,36 +46,35 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- SSID -->
                 <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
-                           Text="WiFi Network (SSID)"
+                           Text="{Binding [RuleDialogSsidLabel], Source={x:Static local:Lang.Instance}}"
                            FontSize="10" Foreground="{StaticResource Sub}" Margin="0,0,0,4"/>
                 <TextBox Grid.Row="1" Grid.Column="0" x:Name="SsidBox" Margin="0,0,8,0"/>
                 <Button  Grid.Row="1" Grid.Column="1"
-                         Content="Use Current" Style="{StaticResource FlatBtn}"
+                         Content="{Binding [BtnUseCurrent], Source={x:Static local:Lang.Instance}}"
+                         Style="{StaticResource FlatBtn}"
                          FontSize="10" Padding="10,6" Click="UseCurrent_Click"/>
 
-                <!-- Tunnel dropdown -->
                 <TextBlock Grid.Row="3" Grid.ColumnSpan="2"
-                           Text="WireGuard Tunnel  (leave blank to disconnect)"
+                           Text="{Binding [RuleDialogTunnelLabel], Source={x:Static local:Lang.Instance}}"
                            FontSize="10" Foreground="{StaticResource Sub}" Margin="0,0,0,4"/>
-                <ComboBox Grid.Row="4" Grid.ColumnSpan="2"
-                          x:Name="TunnelBox" IsEditable="True"
-                          FontFamily="Consolas" FontSize="11"/>
+                <ComboBox Grid.Row="4" Grid.ColumnSpan="2" x:Name="TunnelBox" IsEditable="True"/>
 
                 <TextBlock Grid.Row="5" Grid.ColumnSpan="2"
-                           Text="Leave blank to disconnect all tunnels on this network"
-                           FontSize="9" Foreground="{StaticResource Sub}" Margin="0,5,0,0"
-                           TextWrapping="Wrap"/>
+                           Text="{Binding [RuleDialogTunnelHint], Source={x:Static local:Lang.Instance}}"
+                           FontSize="9" Foreground="{StaticResource Sub}"
+                           Margin="0,5,0,0" TextWrapping="Wrap"/>
             </Grid>
 
             <!-- Buttons -->
             <Border Grid.Row="2" Background="{StaticResource Bg}" CornerRadius="0,0,6,6">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                             Margin="0,0,16,0" VerticalAlignment="Center">
-                    <Button Content="Cancel" Style="{StaticResource FlatBtn}"
+                    <Button Content="{Binding [BtnCancel], Source={x:Static local:Lang.Instance}}"
+                            Style="{StaticResource FlatBtn}"
                             Margin="0,0,8,0" Click="Cancel_Click"/>
-                    <Button Content="Save Rule" Style="{StaticResource PrimaryBtn}"
+                    <Button Content="{Binding [BtnSaveRule], Source={x:Static local:Lang.Instance}}"
+                            Style="{StaticResource PrimaryBtn}"
                             Click="Save_Click"/>
                 </StackPanel>
             </Border>
