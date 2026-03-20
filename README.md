@@ -1,6 +1,6 @@
 # WireGuard Client and WiFi Switcher
 
-**Version 0.8 beta** — by [Harold Masselink](https://github.com/masselink/WGClientWifiSwitcher)
+**Version 1.0** — by [Harold Masselink](https://github.com/masselink/WGClientWifiSwitcher)
 
 A native Windows companion app for WireGuard that automatically connects and disconnects VPN tunnels based on your current WiFi network (SSID). Also works as a lightweight manual tunnel client — no need to open the WireGuard GUI for day-to-day use. Built with C# / WPF on .NET 8.
 
