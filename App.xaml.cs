@@ -233,7 +233,7 @@ namespace WGClientWifiSwitcher
         {
             _trayIcon = new WinForms.NotifyIcon
             {
-                Text = "WireGuard Client and WiFi Switcher v1.0",
+                Text = "WireGuard Client and WiFi Switcher v1.0.1",
                 Visible = true,
                 Icon = TrayIconHelper.CreateIcon()
             };
@@ -511,20 +511,49 @@ namespace WGClientWifiSwitcher
         // ── Public entry point ───────────────────────────────────────────────
         public static System.Drawing.Icon CreateIcon(bool active = false)
         {
-            // Render at 256x256, then scale to 32 and 16 for the .ico frames
             const int S = 256;
+            const int OUT = 48;
             using var bmp = RenderIcon(S, active);
 
-            using var ico32 = new System.Drawing.Bitmap(48, 48);
-            using (var g32 = System.Drawing.Graphics.FromImage(ico32))
+            // Scale to output size
+            using var scaled = new System.Drawing.Bitmap(OUT, OUT);
+            using (var g = System.Drawing.Graphics.FromImage(scaled))
             {
-                g32.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                g32.SmoothingMode     = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                g32.DrawImage(bmp, 0, 0, 48, 48);
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode     = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.DrawImage(bmp, 0, 0, OUT, OUT);
             }
 
-            var hIcon = ico32.GetHicon();
-            return System.Drawing.Icon.FromHandle(hIcon);
+            // Build a proper .ico via memory stream so the Icon owns its data
+            // and does not rely on an HICON handle that may be freed prematurely.
+            using var ms = new System.IO.MemoryStream();
+            WriteIco(ms, scaled);
+            ms.Position = 0;
+            return new System.Drawing.Icon(ms);
+        }
+
+        // Writes a minimal single-frame .ico file to a stream.
+        private static void WriteIco(System.IO.Stream s, System.Drawing.Bitmap bmp)
+        {
+            using var imgStream = new System.IO.MemoryStream();
+            bmp.Save(imgStream, System.Drawing.Imaging.ImageFormat.Png);
+            var imgBytes = imgStream.ToArray();
+
+            using var w = new System.IO.BinaryWriter(s, System.Text.Encoding.UTF8, leaveOpen: true);
+            // ICONDIR
+            w.Write((short)0);          // reserved
+            w.Write((short)1);          // type: icon
+            w.Write((short)1);          // image count
+            // ICONDIRENTRY
+            w.Write((byte)bmp.Width);   // width  (0 = 256)
+            w.Write((byte)bmp.Height);  // height (0 = 256)
+            w.Write((byte)0);           // colour count
+            w.Write((byte)0);           // reserved
+            w.Write((short)1);          // colour planes
+            w.Write((short)32);         // bits per pixel
+            w.Write(imgBytes.Length);   // image data size
+            w.Write(6 + 16);            // offset to image data (ICONDIR + 1 × ICONDIRENTRY)
+            w.Write(imgBytes);
         }
 
         // ── Renderer — shield + chevron, matches title bar icon exactly ───

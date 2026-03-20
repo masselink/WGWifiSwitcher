@@ -2,7 +2,7 @@
   "_language": "English",
   "_code": "en",
 
-  "AppTitle": "WireGuard Client and WiFi Switcher v1.0",
+  "AppTitle": "WireGuard Client and WiFi Switcher v1.0.1",
 
   "StatusWifi": "WiFi:",
   "StatusActiveTunnel": "Active tunnel:",

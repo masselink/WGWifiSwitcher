@@ -368,6 +368,7 @@ namespace WGClientWifiSwitcher
 
         [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr h, int i);
         [DllImport("user32.dll")] static extern int SetWindowLong(IntPtr h, int i, int v);
+        [DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr hIcon);
 
         // ── Wlan native API ───────────────────────────────────────────────────
         [DllImport("wlanapi.dll")] static extern uint WlanOpenHandle(uint clientVersion, IntPtr reserved, out uint negotiatedVersion, out IntPtr clientHandle);
@@ -401,14 +402,20 @@ namespace WGClientWifiSwitcher
             int style = GetWindowLong(hwnd, GWL_EXSTYLE);
             SetWindowLong(hwnd, GWL_EXSTYLE, (style & ~WS_EX_TOOLWINDOW) | WS_EX_APPWINDOW);
 
-            // Set window icon to match the tray icon
+            // Set window icon to match the tray icon.
+            // Important: do NOT wrap the icon in a using block — CreateBitmapSourceFromHIcon
+            // needs the HICON to stay alive until WPF has copied the pixels. Instead,
+            // extract the handle, create the BitmapSource, then destroy the handle manually.
             try
             {
-                using var drawingIcon = TrayIconHelper.CreateIcon(false);
+                var drawingIcon = TrayIconHelper.CreateIcon(false);
+                var hIcon = drawingIcon.Handle;
                 Icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
-                    drawingIcon.Handle,
+                    hIcon,
                     System.Windows.Int32Rect.Empty,
                     System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                DestroyIcon(hIcon);
+                drawingIcon.Dispose();
             }
             catch { }
         }

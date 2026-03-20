@@ -1,12 +1,14 @@
 # WireGuard Client and WiFi Switcher
 
-**Version 1.0** — by [Harold Masselink](https://github.com/masselink/WGClientWifiSwitcher)
+**Version 1.0.1** — by [Harold Masselink](https://github.com/masselink/WGClientWifiSwitcher)
 
 A native Windows companion app for WireGuard that automatically switches VPN tunnels based on your current WiFi network. Built with C# / WPF on .NET 10 (LTS) — no Electron, no bloat.
 
 ---
 
-<img width="818" height="476" alt="Screenshot" src="https://github.com/user-attachments/assets/5f0f4a2e-7fba-4039-9fc4-6055c1bab6c7" />
+<img width="818" height="476" alt="WG Client screenshot" src="https://github.com/user-attachments/assets/5f0f4a2e-7fba-4039-9fc4-6055c1bab6c7" />
+
+---
 
 ## What it does
 
@@ -119,7 +121,7 @@ Language files live in `lang\` next to the executable. The picker in the title b
 {
   "_language": "Deutsch",
   "_code": "de",
-  "AppTitle": "WireGuard Client und WiFi Switcher v1.0",
+  "AppTitle": "WireGuard Client und WiFi Switcher v1.0.1",
   "BtnAddRule": "\uFF0B  Regel hinzufügen"
 }
 ```
