@@ -148,20 +148,35 @@
                 <Grid Grid.Column="0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*" MinHeight="120"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="10"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="8"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="2*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0"
-                               Text="{Binding [SectionTunnels], Source={x:Static local:Lang.Instance}}"
-                               Style="{StaticResource SectionLabel}"/>
+                    <!-- Tunnels header + count badge -->
+                    <Grid Grid.Row="0" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding [SectionTunnels], Source={x:Static local:Lang.Instance}}"
+                                   Style="{StaticResource SectionLabel}" Margin="0"/>
+                        <Border Grid.Column="1" x:Name="TunnelCountBadge"
+                                Background="{StaticResource Border}"
+                                CornerRadius="8" Padding="6,1" Margin="6,0,0,0"
+                                VerticalAlignment="Center">
+                            <TextBlock x:Name="TunnelCountLabel"
+                                       FontFamily="Consolas" FontSize="9"
+                                       Foreground="{StaticResource Sub}" Text="0"/>
+                        </Border>
+                    </Grid>
 
                     <ListView Grid.Row="1" x:Name="TunnelsListView"
-                              MaxHeight="160"
                               ScrollViewer.VerticalScrollBarVisibility="Auto"
                               SelectionChanged="TunnelsListView_SelectionChanged">
                         <ListView.View>
@@ -232,35 +247,56 @@
                                 Click="DeleteTunnel_Click"/>
                     </StackPanel>
 
-                    <TextBlock Grid.Row="4"
-                               Text="{Binding [SectionRules], Source={x:Static local:Lang.Instance}}"
-                               Style="{StaticResource SectionLabel}"/>
+                    <!-- Rules panel — hidden in manual mode -->
+                    <StackPanel Grid.Row="4" Grid.RowSpan="3" x:Name="RulesPanel">
 
-                    <ListView Grid.Row="5" x:Name="RulesListView"
-                              SelectionChanged="RulesListView_SelectionChanged">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="{Binding [RuleColSsid], Source={x:Static local:Lang.Instance}}"
-                                                Width="200"
-                                                DisplayMemberBinding="{Binding Ssid}"/>
-                                <GridViewColumn Header="{Binding [RuleColTunnel], Source={x:Static local:Lang.Instance}}"
-                                                Width="170"
-                                                DisplayMemberBinding="{Binding TunnelDisplay}"/>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
+                        <!-- Rules header + count badge -->
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding [SectionRules], Source={x:Static local:Lang.Instance}}"
+                                       Style="{StaticResource SectionLabel}" Margin="0"/>
+                            <Border Grid.Column="1" x:Name="RuleCountBadge"
+                                    Background="{StaticResource Border}"
+                                    CornerRadius="8" Padding="6,1" Margin="6,0,0,0"
+                                    VerticalAlignment="Center">
+                                <TextBlock x:Name="RuleCountLabel"
+                                           FontFamily="Consolas" FontSize="9"
+                                           Foreground="{StaticResource Sub}" Text="0"/>
+                            </Border>
+                        </Grid>
 
-                    <StackPanel Grid.Row="6" Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button Content="{Binding [BtnAddRule], Source={x:Static local:Lang.Instance}}"
-                                Style="{StaticResource GreenBtn}" Click="AddRule_Click"/>
-                        <Button Content="{Binding [BtnEditRule], Source={x:Static local:Lang.Instance}}"
-                                Style="{StaticResource FlatBtn}"
-                                Margin="8,0" Click="EditRule_Click"
-                                x:Name="EditBtn" IsEnabled="False"/>
-                        <Button Content="{Binding [BtnDeleteRule], Source={x:Static local:Lang.Instance}}"
-                                Style="{StaticResource DangerBtn}"
-                                Click="DeleteRule_Click"
-                                x:Name="DeleteBtn" IsEnabled="False"/>
+                        <ListView x:Name="RulesListView"
+                                  MinHeight="60" MaxHeight="200"
+                                  SelectionChanged="RulesListView_SelectionChanged">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="{Binding [RuleColSsid], Source={x:Static local:Lang.Instance}}"
+                                                    Width="200"
+                                                    DisplayMemberBinding="{Binding Ssid}"/>
+                                    <GridViewColumn Header="{Binding [RuleColTunnel], Source={x:Static local:Lang.Instance}}"
+                                                    Width="170"
+                                                    DisplayMemberBinding="{Binding TunnelDisplay}"/>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button Content="{Binding [BtnAddRule], Source={x:Static local:Lang.Instance}}"
+                                    Style="{StaticResource GreenBtn}" Click="AddRule_Click"/>
+                            <Button Content="{Binding [BtnEditRule], Source={x:Static local:Lang.Instance}}"
+                                    Style="{StaticResource FlatBtn}"
+                                    Margin="8,0" Click="EditRule_Click"
+                                    x:Name="EditBtn" IsEnabled="False"/>
+                            <Button Content="{Binding [BtnDeleteRule], Source={x:Static local:Lang.Instance}}"
+                                    Style="{StaticResource DangerBtn}"
+                                    Click="DeleteRule_Click"
+                                    x:Name="DeleteBtn" IsEnabled="False"/>
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
 
@@ -274,37 +310,39 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0"
-                               Text="{Binding [SectionDefaultAction], Source={x:Static local:Lang.Instance}}"
-                               Style="{StaticResource SectionLabel}"/>
+                    <!-- Default action panel — hidden in manual mode -->
+                    <StackPanel Grid.Row="0" Grid.RowSpan="2" x:Name="DefaultActionPanel">
+                        <TextBlock Text="{Binding [SectionDefaultAction], Source={x:Static local:Lang.Instance}}"
+                                   Style="{StaticResource SectionLabel}"/>
 
-                    <Border Grid.Row="1" Background="{StaticResource Card}"
-                            BorderBrush="{StaticResource Border}" BorderThickness="1"
-                            CornerRadius="4" Padding="12,10">
-                        <StackPanel>
-                            <TextBlock Text="{Binding [DefaultActionPrompt], Source={x:Static local:Lang.Instance}}"
-                                       FontSize="10" Foreground="{StaticResource Sub}" Margin="0,0,0,8"/>
-                            <RadioButton x:Name="ActionNone"
-                                         Content="{Binding [DefaultActionNone], Source={x:Static local:Lang.Instance}}"
-                                         Checked="DefaultAction_Changed" Tag="none"/>
-                            <RadioButton x:Name="ActionDiscon"
-                                         Content="{Binding [DefaultActionDisconnect], Source={x:Static local:Lang.Instance}}"
-                                         Checked="DefaultAction_Changed" Tag="disconnect"/>
-                            <RadioButton x:Name="ActionActivate" Margin="0,3,0,0"
-                                         Checked="DefaultAction_Changed" Tag="activate">
-                                <RadioButton.Content>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding [DefaultActionActivate], Source={x:Static local:Lang.Instance}}"
-                                                   VerticalAlignment="Center"/>
-                                        <ComboBox x:Name="DefaultTunnelBox" Margin="8,0,0,0"
-                                                  MinWidth="140" FontSize="11" IsEditable="True"
-                                                  SelectionChanged="DefaultTunnelBox_SelectionChanged"
-                                                  LostFocus="DefaultTunnelBox_LostFocus"/>
-                                    </StackPanel>
-                                </RadioButton.Content>
-                            </RadioButton>
-                        </StackPanel>
-                    </Border>
+                        <Border Background="{StaticResource Card}"
+                                BorderBrush="{StaticResource Border}" BorderThickness="1"
+                                CornerRadius="4" Padding="12,10">
+                            <StackPanel>
+                                <TextBlock Text="{Binding [DefaultActionPrompt], Source={x:Static local:Lang.Instance}}"
+                                           FontSize="10" Foreground="{StaticResource Sub}" Margin="0,0,0,8"/>
+                                <RadioButton x:Name="ActionNone"
+                                             Content="{Binding [DefaultActionNone], Source={x:Static local:Lang.Instance}}"
+                                             Checked="DefaultAction_Changed" Tag="none"/>
+                                <RadioButton x:Name="ActionDiscon"
+                                             Content="{Binding [DefaultActionDisconnect], Source={x:Static local:Lang.Instance}}"
+                                             Checked="DefaultAction_Changed" Tag="disconnect"/>
+                                <RadioButton x:Name="ActionActivate" Margin="0,3,0,0"
+                                             Checked="DefaultAction_Changed" Tag="activate">
+                                    <RadioButton.Content>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding [DefaultActionActivate], Source={x:Static local:Lang.Instance}}"
+                                                       VerticalAlignment="Center"/>
+                                            <ComboBox x:Name="DefaultTunnelBox" Margin="8,0,0,0"
+                                                      MinWidth="140" FontSize="11" IsEditable="True"
+                                                      SelectionChanged="DefaultTunnelBox_SelectionChanged"
+                                                      LostFocus="DefaultTunnelBox_LostFocus"/>
+                                        </StackPanel>
+                                    </RadioButton.Content>
+                                </RadioButton>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
 
                     <TextBlock Grid.Row="3"
                                Text="{Binding [SectionActivityLog], Source={x:Static local:Lang.Instance}}"

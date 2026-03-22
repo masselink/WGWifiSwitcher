@@ -243,5 +243,9 @@
   "DllStatusPresent": "tunnel.dll + wireguard.dll — gereed",
   "DllStatusMissing": "tunnel.dll of wireguard.dll niet gevonden",
   "DllStatusHint": "Plaats tunnel.dll en wireguard.dll naast het exe-bestand om lokale tunnels te gebruiken zonder de WireGuard-client.",
-  "DllDownloadHint": "Haal wireguard.dll op via: download.wireguard.com/wireguard-nt/  |  tunnel.dll: bouwen via github.com/WireGuard/wireguard-windows/embeddable-dll-service"
+  "DllDownloadHint": "Haal wireguard.dll op via: download.wireguard.com/wireguard-nt/  |  tunnel.dll: bouwen via github.com/WireGuard/wireguard-windows/embeddable-dll-service",
+  "SettingsSectionMode": "MODUS",
+  "SettingsModeLabel": "Handmatige modus",
+  "SettingsModeDescription": "Wanneer ingeschakeld zijn netwerkregels uitgeschakeld en worden tunnels niet automatisch gewisseld bij een wifinetworkwissel. Verbind en verbreek tunnels handmatig.",
+  "StatusManualMode": "Handmatige modus"
 }

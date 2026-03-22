@@ -135,6 +135,7 @@ namespace WGClientWifiSwitcher
         public string?            InstalledPath      { get; set; } = null;
         public DateTime           LastUpdateCheck    { get; set; } = DateTime.MinValue;
         public string?            LatestKnownVersion { get; set; } = null;
+        public bool               ManualMode         { get; set; } = false;
 
         [JsonIgnore]
         public string ConfDirectory => string.IsNullOrWhiteSpace(InstallDirectory)
@@ -405,6 +406,7 @@ namespace WGClientWifiSwitcher
                 Log("LogStartedFrom", LogLevel.Info, startedFrom);
                 Log("LogAppStarted", LogLevel.Info);
                 LoadConfig();
+                ApplyManualMode();
                 SetupTimer();
 
                 // Background update check — once every 7 days
@@ -509,7 +511,8 @@ namespace WGClientWifiSwitcher
             if (wifi == _lastWifi) return;
             _lastWifi = wifi;
             Log("LogWifiChanged", LogLevel.Info, wifi ?? Lang.T("LogWifiDisconnected"));
-            ApplyRules(wifi);
+            if (!_cfg.ManualMode)
+                ApplyRules(wifi);
         }
 
         public void UpdateStatusDisplay(string? wifi = null)
@@ -910,6 +913,7 @@ namespace WGClientWifiSwitcher
             {
                 _rules.Add(new TunnelRule { Ssid = dlg.ResultSsid, Tunnel = dlg.ResultTunnel });
                 SaveConfig();
+                UpdateCountBadges();
                 Log("LogRuleAdded", LogLevel.Ok, dlg.ResultSsid,
                     string.IsNullOrEmpty(dlg.ResultTunnel) ? Lang.T("TunnelBtnDisconnect") : dlg.ResultTunnel);
             }
@@ -939,6 +943,7 @@ namespace WGClientWifiSwitcher
             {
                 _rules.Remove(rule);
                 SaveConfig();
+                UpdateCountBadges();
                 Log("LogRuleDeleted", LogLevel.Warn, rule.Ssid);
             }
         }
@@ -1164,8 +1169,19 @@ namespace WGClientWifiSwitcher
             // Rebuild tray menu
             ((App)System.Windows.Application.Current).RebuildTrayTunnelMenu(tunnels, active);
 
+            // Update count badges
+            TunnelCountLabel.Text = tunnels.Count.ToString();
+            RuleCountLabel.Text   = _rules.Count.ToString();
+
             // Check availability of all tunnels
             CheckTunnelAvailability();
+            UpdateCountBadges();
+        }
+
+        private void UpdateCountBadges()
+        {
+            TunnelCountLabel.Text = _tunnels.Count.ToString();
+            RuleCountLabel.Text   = _rules.Count.ToString();
         }
 
         // Called from UpdateStatusDisplay to refresh live Active flags without rebuilding
@@ -1318,7 +1334,12 @@ namespace WGClientWifiSwitcher
             bool runningFromInstall = installed &&
                 string.Equals(currentDir, installedPath, StringComparison.OrdinalIgnoreCase);
 
-            if (installed && runningFromInstall)
+            if (_cfg.ManualMode)
+            {
+                FooterLabel.Text       = Lang.T("StatusManualMode");
+                FooterLabel.Foreground = (SolidColorBrush)FindResource("Sub");
+            }
+            else if (installed && runningFromInstall)
             {
                 FooterLabel.Text       = Lang.T("StatusManaged");
                 FooterLabel.Foreground = (SolidColorBrush)FindResource("Green");
@@ -1333,6 +1354,15 @@ namespace WGClientWifiSwitcher
                 FooterLabel.Text       = Lang.T("StatusPortable");
                 FooterLabel.Foreground = (SolidColorBrush)FindResource("Sub");
             }
+        }
+
+        /// <summary>Shows/hides the rules and default-action panels based on ManualMode.</summary>
+        internal void ApplyManualMode()
+        {
+            var vis = _cfg.ManualMode ? Visibility.Collapsed : Visibility.Visible;
+            RulesPanel.Visibility         = vis;
+            DefaultActionPanel.Visibility = vis;
+            UpdateFooterLabel();
         }
 
         private void RunInstall()

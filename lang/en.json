@@ -243,5 +243,9 @@
   "DllStatusPresent": "tunnel.dll + wireguard.dll — ready",
   "DllStatusMissing": "tunnel.dll or wireguard.dll not found",
   "DllStatusHint": "Place tunnel.dll and wireguard.dll next to the exe to enable local tunnels without the WireGuard client.",
-  "DllDownloadHint": "Get wireguard.dll: download.wireguard.com/wireguard-nt/  |  tunnel.dll: build from github.com/WireGuard/wireguard-windows/embeddable-dll-service"
+  "DllDownloadHint": "Get wireguard.dll: download.wireguard.com/wireguard-nt/  |  tunnel.dll: build from github.com/WireGuard/wireguard-windows/embeddable-dll-service",
+  "SettingsSectionMode": "MODE",
+  "SettingsModeLabel": "Manual mode",
+  "SettingsModeDescription": "When enabled, network rules are disabled and tunnels are not switched automatically when the WiFi network changes. Connect and disconnect tunnels manually.",
+  "StatusManualMode": "Manual mode"
 }

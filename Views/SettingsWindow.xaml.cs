@@ -8,6 +8,7 @@ namespace WGClientWifiSwitcher.Views
     {
         private readonly MainWindow _main;
         private ReleaseInfo? _pendingRelease;
+        private bool _loading = true;
 
         public SettingsWindow(MainWindow main)
         {
@@ -33,6 +34,10 @@ namespace WGClientWifiSwitcher.Views
             RefreshInstallState();
             RefreshDllStatus();
             RefreshUpdateState();
+
+            // Initialise manual mode toggle without firing the handler
+            ManualModeToggle.IsChecked = _main.GetConfig().ManualMode;
+            _loading = false;
             VersionLabel.Text = Lang.T("SettingsVersion") + " " + Lang.T("AppTitle");
         }
 
@@ -46,6 +51,15 @@ namespace WGClientWifiSwitcher.Views
                 VersionLabel.Text = Lang.T("SettingsVersion") + " " + Lang.T("AppTitle");
                 CheckUpdateBtn.Content = Lang.T("BtnCheckUpdate");
             });
+        }
+
+        private void ManualMode_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            var cfg = _main.GetConfig();
+            cfg.ManualMode = ManualModeToggle.IsChecked == true;
+            _main.SaveConfigPublic();
+            _main.ApplyManualMode();
         }
 
         // ── Install state ────────────────────────────────────────────────────
