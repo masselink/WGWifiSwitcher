@@ -12,3 +12,5 @@ obj/
 # DLLs placed next to the project for local dev
 tunnel.dll
 wireguard.dll
+wireguard-deps/tunnel.dll
+wireguard-deps/wireguard.dll
