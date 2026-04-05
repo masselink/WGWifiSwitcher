@@ -310,8 +310,8 @@
   "WizardModeBody": "Wie soll MasselGUARD Ihre Tunnel verwalten?",
   "WizardDllTitle": "Eigenständige DLLs",
   "WizardDllBody": "Der Eigenständig-Modus erfordert tunnel.dll und wireguard.dll neben der ausführbaren Datei.",
-  "WizardDllMissing": "⚠  DLLs nicht gefunden.",
-  "WizardDllOk": "✓  DLLs bereit.",
+  "WizardDllMissing": "⚠  tunnel.dll / wireguard.dll not found next to the exe",
+  "WizardDllOk": "✓  tunnel.dll + wireguard.dll ready",
   "WizardWgTitle": "WireGuard-App",
   "WizardWgBody": "WireGuard für Windows wurde gefunden. Sie können vorhandene Tunnelprofile verknüpfen.",
   "WizardWgMissing": "⚠  WireGuard für Windows ist nicht installiert.",
@@ -344,7 +344,7 @@
   "TrayPopupConnectedReason": "✓  {0}\n    {1}",
   "TrayPopupDisconnectedReason": "✕  {0}\n    {1}",
   "TrayPopupDisconAllReason": "✕  Alle Tunnel getrennt\n    {0}",
-  "SettingsSectionOrphans": "VERWAISTE TUNNELDIENSTE",
+  "SettingsSectionOrphans": "MÖGLICHERWEISE VERWAISTE TUNNELDIENSTE",
   "OrphansDescription": "WireGuardTunnel$-Dienste, die nach einem Absturz oder erzwungenem Beenden im SCM verblieben sind.",
   "OrphansNone": "✓  Keine verwaisten Dienste gefunden",
   "OrphansScanning": "Wird gescannt…",
@@ -356,5 +356,5 @@
   "OrphanRemoved": "Entfernt: {0}",
   "OrphanRemoveFailed": "{0} konnte nicht entfernt werden: {1}",
   "OrphansLastScan": "Letzter Scan: {0}",
-  "OrphansFound": "{0} verwaiste(r) Dienst(e) gefunden"
+  "OrphansFound": "{0} möglicherweise verwaiste(r) Dienst(e) gefunden"
 }

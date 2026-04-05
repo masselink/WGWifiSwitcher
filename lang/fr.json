@@ -310,8 +310,8 @@
   "WizardModeBody": "Comment MasselGUARD doit-il gérer vos tunnels ?",
   "WizardDllTitle": "DLL autonomes",
   "WizardDllBody": "Le mode Autonome nécessite tunnel.dll et wireguard.dll à côté de l'exécutable.",
-  "WizardDllMissing": "⚠  DLL introuvables.",
-  "WizardDllOk": "✓  DLL prêtes.",
+  "WizardDllMissing": "⚠  tunnel.dll / wireguard.dll not found next to the exe",
+  "WizardDllOk": "✓  tunnel.dll + wireguard.dll ready",
   "WizardWgTitle": "Application WireGuard",
   "WizardWgBody": "WireGuard pour Windows a été détecté. Vous pouvez lier des profils de tunnel existants.",
   "WizardWgMissing": "⚠  WireGuard pour Windows n'est pas installé.",
@@ -344,7 +344,7 @@
   "TrayPopupConnectedReason": "✓  {0}\n    {1}",
   "TrayPopupDisconnectedReason": "✕  {0}\n    {1}",
   "TrayPopupDisconAllReason": "✕  Tous les tunnels déconnectés\n    {0}",
-  "SettingsSectionOrphans": "SERVICES DE TUNNEL ORPHELINS",
+  "SettingsSectionOrphans": "SERVICES DE TUNNEL POTENTIELLEMENT ORPHELINS",
   "OrphansDescription": "Services WireGuardTunnel$ laissés dans le SCM après un plantage ou une fermeture forcée.",
   "OrphansNone": "✓  Aucun service orphelin trouvé",
   "OrphansScanning": "Analyse en cours…",
@@ -356,5 +356,5 @@
   "OrphanRemoved": "Supprimé : {0}",
   "OrphanRemoveFailed": "Échec de la suppression de {0} : {1}",
   "OrphansLastScan": "Dernière analyse : {0}",
-  "OrphansFound": "{0} service(s) orphelin(s) trouvé(s)"
+  "OrphansFound": "{0} service(s) potentiellement orphelin(s) trouvé(s)"
 }

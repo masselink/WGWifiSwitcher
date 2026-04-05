@@ -786,7 +786,7 @@ namespace MasselGUARD
                     var popup = new Views.TrayToast(message);
                     popup.Show();
                     var timer = new System.Windows.Threading.DispatcherTimer
-                        { Interval = TimeSpan.FromSeconds(3) };
+                        { Interval = TimeSpan.FromSeconds(6) };
                     timer.Tick += (_, _) => { timer.Stop(); popup.FadeAndClose(); };
                     timer.Start();
                 }
@@ -1594,23 +1594,26 @@ namespace MasselGUARD
             //  • Local, available   → "Delete" (deletes the encrypted conf file)
             if (!sel)
             {
-                DeleteTunnelBtn.IsEnabled = false;
-                DeleteTunnelBtn.Content   = Lang.T("BtnDeleteTunnel");
+                DeleteTunnelBtn.Visibility = Visibility.Collapsed;
+                DeleteTunnelBtn.IsEnabled  = false;
             }
             else if (isWg)
             {
-                DeleteTunnelBtn.IsEnabled = true;
-                DeleteTunnelBtn.Content   = Lang.T("ImportUnlinkWireGuard");
+                DeleteTunnelBtn.Visibility = Visibility.Visible;
+                DeleteTunnelBtn.IsEnabled  = true;
+                DeleteTunnelBtn.Content    = Lang.T("ImportUnlinkWireGuard");
             }
             else if (!avail)
             {
-                DeleteTunnelBtn.IsEnabled = true;
-                DeleteTunnelBtn.Content   = Lang.T("BtnRemoveTunnel");
+                DeleteTunnelBtn.Visibility = Visibility.Visible;
+                DeleteTunnelBtn.IsEnabled  = true;
+                DeleteTunnelBtn.Content    = Lang.T("BtnRemoveTunnel");
             }
             else
             {
-                DeleteTunnelBtn.IsEnabled = true;
-                DeleteTunnelBtn.Content   = Lang.T("BtnDeleteTunnel");
+                DeleteTunnelBtn.Visibility = Visibility.Visible;
+                DeleteTunnelBtn.IsEnabled  = true;
+                DeleteTunnelBtn.Content    = Lang.T("BtnDeleteTunnel");
             }
         }
 
@@ -2086,7 +2089,8 @@ namespace MasselGUARD
             RulesPanel.Visibility = manual ? Visibility.Collapsed : Visibility.Visible;
             DefaultActionPanel.Visibility = Visibility.Visible;
 
-            var leftGrid = TunnelsListView.Parent as System.Windows.Controls.Grid;
+            // LeftTunnelGrid is named in XAML for reliable access
+            var leftGrid = LeftTunnelGrid as System.Windows.Controls.Grid;
             if (leftGrid != null)
             {
                 if (manual)

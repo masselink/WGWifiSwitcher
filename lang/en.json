@@ -310,8 +310,8 @@
   "WizardModeBody": "How should MasselGUARD manage your tunnels?",
   "WizardDllTitle": "Standalone DLLs",
   "WizardDllBody": "Standalone mode requires tunnel.dll and wireguard.dll next to the executable. Place them there now or download them via the button below.",
-  "WizardDllMissing": "⚠  DLLs not found next to the exe.",
-  "WizardDllOk": "✓  DLLs ready.",
+  "WizardDllMissing": "⚠  tunnel.dll / wireguard.dll not found next to the exe",
+  "WizardDllOk": "✓  tunnel.dll + wireguard.dll ready",
   "WizardWgTitle": "WireGuard App",
   "WizardWgBody": "WireGuard for Windows was detected. You can link existing tunnel profiles from within the app.",
   "WizardWgMissing": "⚠  WireGuard for Windows is not installed. Install it to use Companion or Mixed mode.",
@@ -344,7 +344,7 @@
   "TrayPopupConnectedReason": "✓  {0}\n    {1}",
   "TrayPopupDisconnectedReason": "✕  {0}\n    {1}",
   "TrayPopupDisconAllReason": "✕  All tunnels disconnected\n    {0}",
-  "SettingsSectionOrphans": "ORPHANED TUNNEL SERVICES",
+  "SettingsSectionOrphans": "POSSIBLE ORPHANED TUNNEL SERVICES",
   "OrphansDescription": "WireGuardTunnel$ services left in the SCM after a crash or force-quit. They waste resources and can prevent tunnels from reconnecting.",
   "OrphansNone": "✓  No orphaned services found",
   "OrphansScanning": "Scanning…",
@@ -356,5 +356,5 @@
   "OrphanRemoved": "Removed: {0}",
   "OrphanRemoveFailed": "Failed to remove {0}: {1}",
   "OrphansLastScan": "Last scan: {0}",
-  "OrphansFound": "{0} orphaned service(s) found"
+  "OrphansFound": "{0} possible orphaned service(s) found"
 }

@@ -245,11 +245,16 @@
                                                    FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
                                                    TextWrapping="Wrap" Margin="0,4,0,0"/>
                                         <CheckBox x:Name="SuppressUpdatePromptToggle"
-                                                  Content="{Binding [SettingsSuppressUpdatePrompt], Source={x:Static local:Lang.Instance}}"
                                                   FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
                                                   Margin="0,8,0,0"
                                                   Checked="SuppressUpdatePrompt_Changed"
-                                                  Unchecked="SuppressUpdatePrompt_Changed"/>
+                                                  Unchecked="SuppressUpdatePrompt_Changed">
+                                            <CheckBox.Content>
+                                                <TextBlock Text="{Binding [SettingsSuppressUpdatePrompt], Source={x:Static local:Lang.Instance}}"
+                                                           FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
+                                                           TextWrapping="Wrap" MaxWidth="260"/>
+                                            </CheckBox.Content>
+                                        </CheckBox>
                                     </StackPanel>
                                     <Button Grid.Column="1" x:Name="InstallBtn"
                                             Style="{StaticResource FlatBtn}"
@@ -263,9 +268,20 @@
                                        Style="{StaticResource SettingsSectionHeader}"/>
                             <Border Style="{StaticResource SettingsCard}">
                                 <StackPanel>
-                                    <TextBlock Text="{Binding [OrphansDescription], Source={x:Static local:Lang.Instance}}"
-                                               FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
-                                               TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                    <!-- Warning banner -->
+                                    <Border Background="#3D2A0A" BorderBrush="#D29922"
+                                            BorderThickness="1" CornerRadius="3"
+                                            Padding="10,7" Margin="0,0,0,10">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="⚠  " FontFamily="Consolas" FontSize="10"
+                                                       Foreground="#D29922" VerticalAlignment="Top"
+                                                       Margin="0,0,4,0"/>
+                                            <TextBlock Text="{Binding [OrphansDescription], Source={x:Static local:Lang.Instance}}"
+                                                       FontFamily="Consolas" FontSize="9"
+                                                       Foreground="#D29922"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
 
                                     <!-- Status + scan button -->
                                     <Grid Margin="0,0,0,8">

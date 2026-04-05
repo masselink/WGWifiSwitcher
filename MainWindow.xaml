@@ -160,7 +160,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- LEFT: Tunnels + Rules -->
-                <Grid Grid.Column="0">
+                <Grid Grid.Column="0" x:Name="LeftTunnelGrid">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="2*" MinHeight="80"/>
@@ -260,7 +260,7 @@
                         <!-- Morphing action button: Delete / Unlink / Remove depending on selection -->
                         <Button x:Name="DeleteTunnelBtn"
                                 Style="{StaticResource DangerBtn}" FontSize="10" Padding="10,3"
-                                Margin="6,0,0,0" IsEnabled="False"
+                                Margin="6,0,0,0" IsEnabled="False" Visibility="Collapsed"
                                 Click="DeleteTunnel_Click"/>
                     </StackPanel>
 

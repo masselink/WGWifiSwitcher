@@ -310,8 +310,8 @@
   "WizardModeBody": "Hoe moet MasselGUARD uw tunnels beheren?",
   "WizardDllTitle": "Standalone DLL's",
   "WizardDllBody": "Standalone-modus vereist tunnel.dll en wireguard.dll naast het uitvoerbare bestand. Plaats ze daar of download ze via de knop hieronder.",
-  "WizardDllMissing": "⚠  DLL's niet gevonden naast het exe-bestand.",
-  "WizardDllOk": "✓  DLL's gereed.",
+  "WizardDllMissing": "⚠  tunnel.dll / wireguard.dll not found next to the exe",
+  "WizardDllOk": "✓  tunnel.dll + wireguard.dll ready",
   "WizardWgTitle": "WireGuard-app",
   "WizardWgBody": "WireGuard voor Windows is gevonden. U kunt bestaande tunnelprofielen koppelen vanuit de app.",
   "WizardWgMissing": "⚠  WireGuard voor Windows is niet geïnstalleerd. Installeer het voor Companion- of Mixed-modus.",
@@ -344,7 +344,7 @@
   "TrayPopupConnectedReason": "✓  {0}\n    {1}",
   "TrayPopupDisconnectedReason": "✕  {0}\n    {1}",
   "TrayPopupDisconAllReason": "✕  Alle tunnels verbroken\n    {0}",
-  "SettingsSectionOrphans": "VERWEESDE TUNNELSERVICES",
+  "SettingsSectionOrphans": "MOGELIJK VERWEESDE TUNNELSERVICES",
   "OrphansDescription": "WireGuardTunnel$-services die na een crash of geforceerde afsluiting in de SCM zijn achtergebleven.",
   "OrphansNone": "✓  Geen verweesde services gevonden",
   "OrphansScanning": "Scannen…",
@@ -356,5 +356,5 @@
   "OrphanRemoved": "Verwijderd: {0}",
   "OrphanRemoveFailed": "Verwijderen van {0} mislukt: {1}",
   "OrphansLastScan": "Laatste scan: {0}",
-  "OrphansFound": "{0} verweesde service(s) gevonden"
+  "OrphansFound": "{0} mogelijk verweesde service(s) gevonden"
 }

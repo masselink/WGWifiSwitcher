@@ -310,8 +310,8 @@
   "WizardModeBody": "¿Cómo debe MasselGUARD gestionar sus túneles?",
   "WizardDllTitle": "DLL autónomas",
   "WizardDllBody": "El modo Autónomo requiere tunnel.dll y wireguard.dll junto al ejecutable.",
-  "WizardDllMissing": "⚠  DLL no encontradas.",
-  "WizardDllOk": "✓  DLL listas.",
+  "WizardDllMissing": "⚠  tunnel.dll / wireguard.dll not found next to the exe",
+  "WizardDllOk": "✓  tunnel.dll + wireguard.dll ready",
   "WizardWgTitle": "App WireGuard",
   "WizardWgBody": "Se detectó WireGuard para Windows. Puede vincular perfiles de túnel existentes.",
   "WizardWgMissing": "⚠  WireGuard para Windows no está instalado.",
@@ -344,7 +344,7 @@
   "TrayPopupConnectedReason": "✓  {0}\n    {1}",
   "TrayPopupDisconnectedReason": "✕  {0}\n    {1}",
   "TrayPopupDisconAllReason": "✕  Todos los túneles desconectados\n    {0}",
-  "SettingsSectionOrphans": "SERVICIOS DE TÚNEL HUÉRFANOS",
+  "SettingsSectionOrphans": "SERVICIOS DE TÚNEL POSIBLEMENTE HUÉRFANOS",
   "OrphansDescription": "Servicios WireGuardTunnel$ dejados en el SCM tras un fallo o cierre forzado.",
   "OrphansNone": "✓  No se encontraron servicios huérfanos",
   "OrphansScanning": "Analizando…",
@@ -356,5 +356,5 @@
   "OrphanRemoved": "Eliminado: {0}",
   "OrphanRemoveFailed": "Error al eliminar {0}: {1}",
   "OrphansLastScan": "Último análisis: {0}",
-  "OrphansFound": "{0} servicio(s) huérfano(s) encontrado(s)"
+  "OrphansFound": "{0} servicio(s) posiblemente huérfano(s) encontrado(s)"
 }
