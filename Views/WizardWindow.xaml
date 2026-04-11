@@ -8,9 +8,9 @@
         Background="Transparent" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner">
 
-    <Border Background="{StaticResource Bg}"
-            BorderBrush="{StaticResource Accent}"
-            BorderThickness="1" CornerRadius="6">
+    <Border Background="{DynamicResource WindowBg}"
+            BorderBrush="{DynamicResource Accent}"
+            BorderThickness="1" CornerRadius="{DynamicResource Theme.CornerRadius}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="44"/>
@@ -20,13 +20,13 @@
             </Grid.RowDefinitions>
 
             <!-- Title bar -->
-            <Border Grid.Row="0" Background="{StaticResource Panel}"
-                    CornerRadius="6,6,0,0"
+            <Border Grid.Row="0" Background="{DynamicResource Surface}"
+                    CornerRadius="{DynamicResource Theme.CornerRadiusTop}"
                     MouseLeftButtonDown="TitleBar_MouseDown">
                 <Grid>
                     <TextBlock Text="{Binding [WizardTitle], Source={x:Static local:Lang.Instance}}"
-                               FontFamily="Consolas" FontSize="13" FontWeight="Bold"
-                               Foreground="{StaticResource Accent}"
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="13" FontWeight="Bold"
+                               Foreground="{DynamicResource Accent}"
                                VerticalAlignment="Center" Margin="16,0"/>
                 </Grid>
             </Border>
@@ -34,11 +34,11 @@
             <!-- Step indicator -->
             <StackPanel Grid.Row="1" Orientation="Horizontal"
                         HorizontalAlignment="Center" Margin="0,14,0,0">
-                <Ellipse x:Name="Dot0" Width="10" Height="10" Margin="4,0" Fill="{StaticResource Accent}"/>
-                <Ellipse x:Name="Dot1" Width="10" Height="10" Margin="4,0" Fill="{StaticResource Border}"/>
-                <Ellipse x:Name="Dot2" Width="10" Height="10" Margin="4,0" Fill="{StaticResource Border}"/>
-                <Ellipse x:Name="Dot3" Width="10" Height="10" Margin="4,0" Fill="{StaticResource Border}"/>
-                <Ellipse x:Name="Dot4" Width="10" Height="10" Margin="4,0" Fill="{StaticResource Border}"/>
+                <Ellipse x:Name="Dot0" Width="10" Height="10" Margin="4,0" Fill="{DynamicResource Accent}"/>
+                <Ellipse x:Name="Dot1" Width="10" Height="10" Margin="4,0" Fill="{DynamicResource BorderColor}"/>
+                <Ellipse x:Name="Dot2" Width="10" Height="10" Margin="4,0" Fill="{DynamicResource BorderColor}"/>
+                <Ellipse x:Name="Dot3" Width="10" Height="10" Margin="4,0" Fill="{DynamicResource BorderColor}"/>
+                <Ellipse x:Name="Dot4" Width="10" Height="10" Margin="4,0" Fill="{DynamicResource BorderColor}"/>
 
             </StackPanel>
 
@@ -48,20 +48,20 @@
                 <!-- Step 0: Welcome -->
                 <StackPanel x:Name="Step0">
                     <TextBlock Text="{Binding [WizardWelcomeTitle], Source={x:Static local:Lang.Instance}}"
-                               FontFamily="Consolas" FontSize="16" FontWeight="Bold"
-                               Foreground="{StaticResource Accent}" Margin="0,0,0,14"/>
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="16" FontWeight="Bold"
+                               Foreground="{DynamicResource Accent}" Margin="0,0,0,14"/>
                     <TextBlock Text="{Binding [WizardWelcomeBody], Source={x:Static local:Lang.Instance}}"
-                               FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Text}"
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextPrimary}"
                                TextWrapping="Wrap" LineHeight="18"/>
                 </StackPanel>
 
                 <!-- Step 1: Language -->
                 <StackPanel x:Name="Step1" Visibility="Collapsed">
                     <TextBlock Text="{Binding [WizardLangTitle], Source={x:Static local:Lang.Instance}}"
-                               FontFamily="Consolas" FontSize="16" FontWeight="Bold"
-                               Foreground="{StaticResource Accent}" Margin="0,0,0,14"/>
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="16" FontWeight="Bold"
+                               Foreground="{DynamicResource Accent}" Margin="0,0,0,14"/>
                     <TextBlock Text="{Binding [WizardLangBody], Source={x:Static local:Lang.Instance}}"
-                               FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Sub}"
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextMuted}"
                                Margin="0,0,0,16"/>
                     <ComboBox x:Name="WizLangPicker" FontSize="13" Padding="10,6"
                               SelectionChanged="WizLang_Changed"/>
@@ -70,18 +70,18 @@
                 <!-- Step 2: Mode -->
                 <StackPanel x:Name="Step2" Visibility="Collapsed">
                     <TextBlock Text="{Binding [WizardModeTitle], Source={x:Static local:Lang.Instance}}"
-                               FontFamily="Consolas" FontSize="16" FontWeight="Bold"
-                               Foreground="{StaticResource Accent}" Margin="0,0,0,14"/>
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="16" FontWeight="Bold"
+                               Foreground="{DynamicResource Accent}" Margin="0,0,0,14"/>
                     <TextBlock Text="{Binding [WizardModeBody], Source={x:Static local:Lang.Instance}}"
-                               FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Sub}"
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextMuted}"
                                Margin="0,0,0,14"/>
                     <RadioButton x:Name="WizModeStandalone" GroupName="WizMode" Checked="WizMode_Changed"
                                  Style="{StaticResource ModeRadio}" Margin="0,0,0,8">
                         <StackPanel>
                             <TextBlock Text="{Binding [ModeStandaloneLabel], Source={x:Static local:Lang.Instance}}"
-                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Text}"/>
+                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
                             <TextBlock Text="{Binding [ModeStandaloneDesc], Source={x:Static local:Lang.Instance}}"
-                                       FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
+                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9" Foreground="{DynamicResource TextMuted}"
                                        TextWrapping="Wrap" Margin="0,2,0,0"/>
                         </StackPanel>
                     </RadioButton>
@@ -89,9 +89,9 @@
                                  Style="{StaticResource ModeRadio}" Margin="0,0,0,8">
                         <StackPanel>
                             <TextBlock Text="{Binding [ModeCompanionLabel], Source={x:Static local:Lang.Instance}}"
-                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Text}"/>
+                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
                             <TextBlock Text="{Binding [ModeCompanionDesc], Source={x:Static local:Lang.Instance}}"
-                                       FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
+                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9" Foreground="{DynamicResource TextMuted}"
                                        TextWrapping="Wrap" Margin="0,2,0,0"/>
                         </StackPanel>
                     </RadioButton>
@@ -99,19 +99,19 @@
                                  Style="{StaticResource ModeRadio}">
                         <StackPanel>
                             <TextBlock Text="{Binding [ModeMixedLabel], Source={x:Static local:Lang.Instance}}"
-                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Text}"/>
+                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
                             <TextBlock Text="{Binding [ModeMixedDesc], Source={x:Static local:Lang.Instance}}"
-                                       FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
+                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9" Foreground="{DynamicResource TextMuted}"
                                        TextWrapping="Wrap" Margin="0,2,0,0"/>
                         </StackPanel>
                     </RadioButton>
 
                     <!-- Inline status: DLL / WireGuard readiness for chosen mode -->
-                    <Border Background="{StaticResource Panel}"
-                            BorderBrush="{StaticResource Border}" BorderThickness="1"
+                    <Border Background="{DynamicResource Surface}"
+                            BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
                             CornerRadius="3" Padding="10,7" Margin="0,12,0,0">
                         <TextBlock x:Name="ModeStatusLabel"
-                                   FontFamily="Consolas" FontSize="10"
+                                   FontFamily="{DynamicResource Theme.FontFamily}" FontSize="10"
                                    TextWrapping="Wrap"/>
                     </Border>
                 </StackPanel>
@@ -119,14 +119,14 @@
                 <!-- Step 3: Manual mode -->
                 <StackPanel x:Name="Step3" Visibility="Collapsed">
                     <TextBlock Text="{Binding [WizardManualTitle], Source={x:Static local:Lang.Instance}}"
-                               FontFamily="Consolas" FontSize="16" FontWeight="Bold"
-                               Foreground="{StaticResource Accent}" Margin="0,0,0,14"/>
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="16" FontWeight="Bold"
+                               Foreground="{DynamicResource Accent}" Margin="0,0,0,14"/>
                     <TextBlock Text="{Binding [WizardManualBody], Source={x:Static local:Lang.Instance}}"
-                               FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Sub}"
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextMuted}"
                                TextWrapping="Wrap" Margin="0,0,0,20" LineHeight="18"/>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{Binding [SettingsModeLabel], Source={x:Static local:Lang.Instance}}"
-                                   FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Text}"
+                                   FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextPrimary}"
                                    VerticalAlignment="Center" Margin="0,0,12,0"/>
                         <ToggleButton x:Name="WizManualToggle"
                                       Width="44" Height="22"
@@ -137,16 +137,16 @@
                 <!-- Step 4: Done -->
                 <StackPanel x:Name="Step4" Visibility="Collapsed">
                     <TextBlock Text="{Binding [WizardDoneTitle], Source={x:Static local:Lang.Instance}}"
-                               FontFamily="Consolas" FontSize="16" FontWeight="Bold"
-                               Foreground="{StaticResource Green}" Margin="0,0,0,14"/>
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="16" FontWeight="Bold"
+                               Foreground="{DynamicResource Success}" Margin="0,0,0,14"/>
                     <TextBlock Text="{Binding [WizardDoneBody], Source={x:Static local:Lang.Instance}}"
-                               FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Text}"
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextPrimary}"
                                TextWrapping="Wrap" LineHeight="18"/>
                 </StackPanel>
             </Grid>
 
             <!-- Navigation bar -->
-            <Border Grid.Row="3" Background="{StaticResource Panel}" CornerRadius="0,0,6,6">
+            <Border Grid.Row="3" Background="{DynamicResource Surface}" CornerRadius="{DynamicResource Theme.CornerRadiusBottom}">
                 <Grid Margin="16,0">
                     <Button x:Name="BtnSkip" HorizontalAlignment="Left"
                             Content="{Binding [WizardBtnSkip], Source={x:Static local:Lang.Instance}}"

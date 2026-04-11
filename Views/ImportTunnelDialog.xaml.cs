@@ -242,8 +242,8 @@ namespace MasselGUARD.Views
             {
                 StatusLabel.Text       = text;
                 StatusLabel.Foreground = isError
-                    ? (System.Windows.Media.SolidColorBrush)FindResource("Red")
-                    : (System.Windows.Media.SolidColorBrush)FindResource("Sub");
+                    ? (System.Windows.Media.SolidColorBrush)FindResource("Danger")
+                    : (System.Windows.Media.SolidColorBrush)FindResource("TextMuted");
                 StatusLabel.Visibility = Visibility.Visible;
             });
         }
@@ -285,8 +285,8 @@ namespace MasselGUARD.Views
 
             var root = new System.Windows.Controls.Border
             {
-                Background      = Br("Bg"),
-                BorderBrush     = Br("Border"),
+                Background      = Br("WindowBg"),
+                BorderBrush     = Br("BorderColor"),
                 BorderThickness = new Thickness(1),
                 CornerRadius    = new CornerRadius(6)
             };
@@ -299,7 +299,7 @@ namespace MasselGUARD.Views
             // Title bar
             var titleBar = new System.Windows.Controls.Border
             {
-                Background   = Br("Panel"),
+                Background   = Br("Surface"),
                 CornerRadius = new CornerRadius(6, 6, 0, 0)
             };
             var titleText = new System.Windows.Controls.TextBlock
@@ -326,7 +326,7 @@ namespace MasselGUARD.Views
             {
                 Text      = Lang.T("ImportWireGuardPrompt"),
                 FontFamily = new System.Windows.Media.FontFamily("Consolas"),
-                FontSize  = 10, Foreground = Br("Sub"),
+                FontSize  = 10, Foreground = Br("TextMuted"),
                 Margin    = new Thickness(0, 0, 0, 10)
             });
 
@@ -362,7 +362,7 @@ namespace MasselGUARD.Views
                     Text       = name,
                     FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                     FontSize   = 11,
-                    Foreground = imported ? Br("Sub") : Br("Text"),
+                    Foreground = imported ? Br("TextMuted") : Br("TextPrimary"),
                     VerticalAlignment = VerticalAlignment.Center
                 };
                 System.Windows.Controls.Grid.SetColumn(nameBlock, 1);
@@ -374,7 +374,7 @@ namespace MasselGUARD.Views
                         Text       = "✓ imported",
                         FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                         FontSize   = 9,
-                        Foreground = Br("Sub"),
+                        Foreground = Br("TextMuted"),
                         VerticalAlignment = VerticalAlignment.Center,
                         Margin     = new Thickness(8, 0, 0, 0)
                     };
@@ -424,7 +424,7 @@ namespace MasselGUARD.Views
             // Button bar
             var btnBar = new System.Windows.Controls.Border
             {
-                Background   = Br("Panel"),
+                Background   = Br("Surface"),
                 CornerRadius = new CornerRadius(0, 0, 6, 6)
             };
             var btnStack = new System.Windows.Controls.StackPanel

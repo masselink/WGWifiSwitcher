@@ -10,9 +10,9 @@
         Background="Transparent"
         WindowStartupLocation="CenterOwner">
 
-    <Border Background="{StaticResource Panel}"
-            BorderBrush="{StaticResource Accent}"
-            BorderThickness="1" CornerRadius="6">
+    <Border Background="{DynamicResource Surface}"
+            BorderBrush="{DynamicResource Accent}"
+            BorderThickness="1" CornerRadius="{DynamicResource Theme.CornerRadius}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="40"/>
@@ -21,13 +21,13 @@
             </Grid.RowDefinitions>
 
             <!-- Title -->
-            <Border Grid.Row="0" Background="{StaticResource Bg}"
-                    CornerRadius="6,6,0,0"
+            <Border Grid.Row="0" Background="{DynamicResource WindowBg}"
+                    CornerRadius="{DynamicResource Theme.CornerRadiusTop}"
                     MouseLeftButtonDown="Title_MouseDown">
                 <TextBlock x:Name="DialogTitle"
                            Text="{Binding [RuleDialogAddTitle], Source={x:Static local:Lang.Instance}}"
-                           FontFamily="Consolas" FontSize="12" FontWeight="Bold"
-                           Foreground="{StaticResource Accent}"
+                           FontFamily="{DynamicResource Theme.FontFamily}" FontSize="12" FontWeight="Bold"
+                           Foreground="{DynamicResource Accent}"
                            Margin="16,0" VerticalAlignment="Center"/>
             </Border>
 
@@ -48,7 +48,7 @@
 
                 <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
                            Text="{Binding [RuleDialogSsidLabel], Source={x:Static local:Lang.Instance}}"
-                           FontSize="10" Foreground="{StaticResource Sub}" Margin="0,0,0,4"/>
+                           FontSize="10" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,4"/>
                 <TextBox Grid.Row="1" Grid.Column="0" x:Name="SsidBox" Margin="0,0,8,0"/>
                 <Button  Grid.Row="1" Grid.Column="1"
                          Content="{Binding [BtnUseCurrent], Source={x:Static local:Lang.Instance}}"
@@ -57,17 +57,17 @@
 
                 <TextBlock Grid.Row="3" Grid.ColumnSpan="2"
                            Text="{Binding [RuleDialogTunnelLabel], Source={x:Static local:Lang.Instance}}"
-                           FontSize="10" Foreground="{StaticResource Sub}" Margin="0,0,0,4"/>
+                           FontSize="10" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,4"/>
                 <ComboBox Grid.Row="4" Grid.ColumnSpan="2" x:Name="TunnelBox" IsEditable="True"/>
 
                 <TextBlock Grid.Row="5" Grid.ColumnSpan="2"
                            Text="{Binding [RuleDialogTunnelHint], Source={x:Static local:Lang.Instance}}"
-                           FontSize="9" Foreground="{StaticResource Sub}"
+                           FontSize="9" Foreground="{DynamicResource TextMuted}"
                            Margin="0,5,0,0" TextWrapping="Wrap"/>
             </Grid>
 
             <!-- Buttons -->
-            <Border Grid.Row="2" Background="{StaticResource Bg}" CornerRadius="0,0,6,6">
+            <Border Grid.Row="2" Background="{DynamicResource WindowBg}" CornerRadius="{DynamicResource Theme.CornerRadiusBottom}">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                             Margin="0,0,16,0" VerticalAlignment="Center">
                     <Button Content="{Binding [BtnCancel], Source={x:Static local:Lang.Instance}}"

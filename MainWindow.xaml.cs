@@ -36,8 +36,8 @@ namespace MasselGUARD
         [JsonIgnore] public string StatusText { get; set; } = "\u2014";
         [JsonIgnore] public SolidColorBrush StatusColor =>
             StatusText == "\u25cf active"
-                ? new SolidColorBrush(Color.FromRgb(63, 185, 80))
-                : new SolidColorBrush(Color.FromRgb(139, 148, 158));
+                ? ThemeRes.Success
+                : ThemeRes.TextMuted;
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnProp([CallerMemberName] string? n = null)
@@ -76,16 +76,12 @@ namespace MasselGUARD
                           Lang.T("TunnelStatusDisconnected");
 
         public System.Windows.Media.SolidColorBrush StatusColor =>
-            !_available
-                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(247, 129, 102)) // red/warn
-                : _active
-                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(63, 185, 80))
-                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(139, 148, 158));
+            !_available ? ThemeRes.Danger
+            : _active   ? ThemeRes.Success
+                        : ThemeRes.TextMuted;
 
         public System.Windows.Media.SolidColorBrush NameColor =>
-            _available
-                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(230, 237, 243))
-                : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(139, 148, 158));
+            _available ? ThemeRes.TextPrimary : ThemeRes.TextMuted;
 
         public System.Windows.TextDecorationCollection? NameDecoration =>
             _available ? null : System.Windows.TextDecorations.Strikethrough;
@@ -101,9 +97,7 @@ namespace MasselGUARD
             : Lang.T("TunnelTypeWireGuard");
 
         public System.Windows.Media.SolidColorBrush TypeColor =>
-            Type == TunnelType.Local
-                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(88, 166, 255))
-                : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(139, 148, 158));
+            Type == TunnelType.Local ? ThemeRes.Accent : ThemeRes.TextMuted;
 
         public void RefreshLabels()
         {
@@ -158,6 +152,14 @@ namespace MasselGUARD
         // When true a small WPF popup appears near the tray when a tunnel
         // is connected or disconnected while the main window is hidden.
         public bool               ShowTrayPopupOnSwitch        { get; set; } = true;
+
+        // Active theme folder name (maps to theme/<ActiveTheme>/theme.json)
+        public string             ActiveTheme                  { get; set; } = "default";
+        // Separate dark/light theme selections for auto-switching
+        public string             ActiveDarkTheme              { get; set; } = "default";
+        public string             ActiveLightTheme             { get; set; } = "light";
+        // When true, automatically switch between dark/light based on Windows system preference
+        public bool               AutoTheme                    { get; set; } = false;
 
         // ── App mode (replaces the old EnableLocalTunnels boolean) ───────────
         public AppMode Mode { get; set; } = AppMode.Standalone;
@@ -217,6 +219,89 @@ namespace MasselGUARD
             }
             catch { return "en"; }
         }
+
+        public static string LoadTheme()
+        {
+            try
+            {
+                if (!File.Exists(ConfigPath)) return "default";
+                var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var cfg  = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(ConfigPath), opts);
+                return string.IsNullOrWhiteSpace(cfg?.ActiveTheme) ? "default" : cfg.ActiveTheme;
+            }
+            catch { return "default"; }
+        }
+
+        public static bool LoadAutoTheme()
+        {
+            try
+            {
+                if (!File.Exists(ConfigPath)) return false;
+                var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var cfg  = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(ConfigPath), opts);
+                return cfg?.AutoTheme ?? false;
+            }
+            catch { return false; }
+        }
+
+        public static void SaveTheme(string themeName)
+        {
+            try
+            {
+                AppConfig cfg = new();
+                if (File.Exists(ConfigPath))
+                {
+                    var opts2 = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    cfg = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(ConfigPath), opts2) ?? new AppConfig();
+                }
+                cfg.ActiveTheme = themeName;
+                Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
+                File.WriteAllText(ConfigPath,
+                    JsonSerializer.Serialize(cfg, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch { }
+        }
+
+        public static void SaveThemeConfig(string activeTheme, string darkTheme, string lightTheme, bool autoTheme)
+        {
+            try
+            {
+                AppConfig cfg = new();
+                if (File.Exists(ConfigPath))
+                {
+                    var opts2 = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    cfg = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(ConfigPath), opts2) ?? new AppConfig();
+                }
+                cfg.ActiveTheme      = activeTheme;
+                cfg.ActiveDarkTheme  = darkTheme;
+                cfg.ActiveLightTheme = lightTheme;
+                cfg.AutoTheme        = autoTheme;
+                Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
+                File.WriteAllText(ConfigPath,
+                    JsonSerializer.Serialize(cfg, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>
+    /// Thin helper for reading theme brush resources from code-behind.
+    /// Returns a fallback colour if the resource key is missing (e.g. at design time).
+    /// </summary>
+    internal static class ThemeRes
+    {
+        private static SolidColorBrush Get(string key, Color fallback)
+        {
+            if (Application.Current?.Resources[key] is SolidColorBrush b) return b;
+            return new SolidColorBrush(fallback);
+        }
+
+        public static SolidColorBrush Accent      => Get("Accent",      Color.FromRgb(88,  166, 255));
+        public static SolidColorBrush Success     => Get("Success",     Color.FromRgb(63,  185,  80));
+        public static SolidColorBrush Danger      => Get("Danger",      Color.FromRgb(247, 129, 102));
+        public static SolidColorBrush TextPrimary => Get("TextPrimary", Color.FromRgb(230, 237, 243));
+        public static SolidColorBrush TextMuted   => Get("TextMuted",   Color.FromRgb(139, 148, 158));
+        public static SolidColorBrush Border      => Get("BorderColor", Color.FromRgb(48,   54,  61));
     }
 
     public partial class MainWindow : Window
@@ -471,6 +556,22 @@ namespace MasselGUARD
 
                 // (Local tunnels use wireguard.exe /installtunnelservice — no DLLs needed)
 
+                // Sync auto theme on startup — apply correct dark/light if auto is enabled
+                if (_cfg.AutoTheme)
+                {
+                    bool isDark = ThemeManager.GetSystemIsDark();
+                    var target = isDark ? _cfg.ActiveDarkTheme : _cfg.ActiveLightTheme;
+                    if (!string.IsNullOrEmpty(target) && target != ThemeManager.Instance.CurrentThemeName)
+                    {
+                        ThemeManager.Instance.Load(target);
+                        _cfg.ActiveTheme = target;
+                    }
+                }
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                    () => UpdateThemeToggleIcon());
+
+                // (Local tunnels use wireguard.exe /installtunnelservice — no DLLs needed)
+
                 // Background update check — once every 7 days
                 if ((DateTime.UtcNow - _cfg.LastUpdateCheck).TotalDays >= 7)
                     _ = UpdateChecker.CheckAsync(_cfg, SaveConfig, Dispatcher);
@@ -652,8 +753,8 @@ namespace MasselGUARD
             wifi ??= GetCurrentSsid();
             WifiLabel.Text       = wifi ?? Lang.T("StatusNone");
             WifiLabel.Foreground = wifi != null
-                ? (SolidColorBrush)FindResource("Text")
-                : (SolidColorBrush)FindResource("Sub");
+                ? (SolidColorBrush)FindResource("TextPrimary")
+                : (SolidColorBrush)FindResource("TextMuted");
 
             foreach (var rule in _rules)
                 rule.StatusText = (!string.IsNullOrEmpty(rule.Tunnel) && GetTunnelStatus(rule.Tunnel))
@@ -662,8 +763,8 @@ namespace MasselGUARD
             var active = GetActiveTunnelNames();
             TunnelLabel.Text       = active.Count > 0 ? string.Join(", ", active) : "\u2014";
             TunnelLabel.Foreground = active.Count > 0
-                ? (SolidColorBrush)FindResource("Green")
-                : (SolidColorBrush)FindResource("Sub");
+                ? (SolidColorBrush)FindResource("Success")
+                : (SolidColorBrush)FindResource("TextMuted");
 
             ((App)System.Windows.Application.Current).UpdateTrayStatus(TunnelLabel.Text, active.Count > 0);
             RefreshTunnelEntryStatuses();
@@ -1753,13 +1854,6 @@ namespace MasselGUARD
             RefreshTunnelDropdowns();
         }
 
-        private void AuthorLink_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            try { Process.Start(new ProcessStartInfo("https://github.com/masselink/MasselGUARD")
-                      { UseShellExecute = true }); }
-            catch { }
-        }
-
         private void DefaultAction_Changed(object sender, RoutedEventArgs e)
         {
             if (_loading) return;
@@ -2067,22 +2161,22 @@ namespace MasselGUARD
             if (_cfg.ManualMode)
             {
                 FooterLabel.Text       = Lang.T("StatusManualMode");
-                FooterLabel.Foreground = (SolidColorBrush)FindResource("Sub");
+                FooterLabel.Foreground = (SolidColorBrush)FindResource("TextMuted");
             }
             else if (installed && runningFromInstall)
             {
                 FooterLabel.Text       = Lang.T("StatusManaged");
-                FooterLabel.Foreground = (SolidColorBrush)FindResource("Green");
+                FooterLabel.Foreground = (SolidColorBrush)FindResource("Success");
             }
             else if (installed && !runningFromInstall)
             {
                 FooterLabel.Text       = Lang.T("StatusManagedPortable");
-                FooterLabel.Foreground = (SolidColorBrush)FindResource("Sub");
+                FooterLabel.Foreground = (SolidColorBrush)FindResource("TextMuted");
             }
             else
             {
                 FooterLabel.Text       = Lang.T("StatusPortable");
-                FooterLabel.Foreground = (SolidColorBrush)FindResource("Sub");
+                FooterLabel.Foreground = (SolidColorBrush)FindResource("TextMuted");
             }
         }
 
@@ -2600,8 +2694,8 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
 
             var root = new System.Windows.Controls.Border
             {
-                Background      = Br("Bg"),
-                BorderBrush     = Br("Border"),
+                Background      = Br("WindowBg"),
+                BorderBrush     = Br("BorderColor"),
                 BorderThickness = new Thickness(1),
                 CornerRadius    = new CornerRadius(6)
             };
@@ -2614,7 +2708,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
             // ── Title bar ────────────────────────────────────────────────────
             var titleBar = new System.Windows.Controls.Border
             {
-                Background   = Br("Panel"),
+                Background   = Br("Surface"),
                 CornerRadius = new CornerRadius(6, 6, 0, 0)
             };
             var titleText = new System.Windows.Controls.TextBlock
@@ -2646,7 +2740,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
                 Text         = Lang.T("InstallLocationNote"),
                 FontFamily   = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize     = 11,
-                Foreground   = Br("Sub"),
+                Foreground   = Br("TextMuted"),
                 TextWrapping = System.Windows.TextWrapping.Wrap,
                 Margin       = new Thickness(0, 0, 0, 16)
             });
@@ -2657,14 +2751,14 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
                 Text       = Lang.T("InstallLocationCurrent"),
                 FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize   = 10,
-                Foreground = Br("Sub"),
+                Foreground = Br("TextMuted"),
                 Margin     = new Thickness(0, 0, 0, 4)
             });
 
             var pathPreview = new System.Windows.Controls.Border
             {
-                Background      = Br("Card"),
-                BorderBrush     = Br("Border"),
+                Background      = Br("CardBg"),
+                BorderBrush     = Br("BorderColor"),
                 BorderThickness = new Thickness(1),
                 CornerRadius    = new CornerRadius(4),
                 Padding         = new Thickness(10, 7, 10, 7),
@@ -2675,7 +2769,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
                 Text         = Path.Combine(selectedParent, InstallFolderName),
                 FontFamily   = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize     = 11,
-                Foreground   = Br("Text"),
+                Foreground   = Br("TextPrimary"),
                 TextWrapping = System.Windows.TextWrapping.Wrap
             };
             pathPreview.Child = pathText;
@@ -2711,7 +2805,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
             // ── Button bar ────────────────────────────────────────────────────
             var btnBar = new System.Windows.Controls.Border
             {
-                Background   = Br("Panel"),
+                Background   = Br("Surface"),
                 CornerRadius = new CornerRadius(0, 0, 6, 6)
             };
             var btnStack = new System.Windows.Controls.StackPanel
@@ -2776,8 +2870,8 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
 
             var root = new System.Windows.Controls.Border
             {
-                Background      = Br("Bg"),
-                BorderBrush     = Br("Border"),
+                Background      = Br("WindowBg"),
+                BorderBrush     = Br("BorderColor"),
                 BorderThickness = new Thickness(1),
                 CornerRadius    = new CornerRadius(6)
             };
@@ -2789,7 +2883,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
 
             // Title bar
             var titleBar = new System.Windows.Controls.Border
-                { Background = Br("Panel"), CornerRadius = new CornerRadius(6, 6, 0, 0) };
+                { Background = Br("Surface"), CornerRadius = new CornerRadius(6, 6, 0, 0) };
             var titleText = new System.Windows.Controls.TextBlock
             {
                 Text              = title,
@@ -2823,7 +2917,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
             {
                 Text         = message,
                 FontFamily   = new System.Windows.Media.FontFamily("Consolas"),
-                FontSize     = 11, Foreground = Br("Text"),
+                FontSize     = 11, Foreground = Br("TextPrimary"),
                 TextWrapping = System.Windows.TextWrapping.Wrap,
                 MaxWidth     = 380
             };
@@ -2837,7 +2931,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
                 Content     = Lang.T("DontAskAgainUpdate"),
                 FontFamily  = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize    = 10,
-                Foreground  = Br("Sub"),
+                Foreground  = Br("TextMuted"),
                 Margin      = new Thickness(0, 12, 0, 0),
                 IsChecked   = false
             };
@@ -2848,7 +2942,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
 
             // Button bar
             var btnBar = new System.Windows.Controls.Border
-                { Background = Br("Panel"), CornerRadius = new CornerRadius(0, 0, 6, 6) };
+                { Background = Br("Surface"), CornerRadius = new CornerRadius(0, 0, 6, 6) };
             var btnStack = new System.Windows.Controls.StackPanel
             {
                 Orientation         = System.Windows.Controls.Orientation.Horizontal,
@@ -2898,10 +2992,10 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
             };
             var iconColor = icon switch
             {
-                MessageBoxImage.Error                             => "Red",
-                MessageBoxImage.Warning                           => "Red",
+                MessageBoxImage.Error                             => "Danger",
+                MessageBoxImage.Warning                           => "Danger",
                 MessageBoxImage.Question                          => "Accent",
-                _                                                 => "Sub"
+                _                                                 => "TextMuted"
             };
 
             var result = MessageBoxResult.None;
@@ -2920,8 +3014,8 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
 
             var root = new System.Windows.Controls.Border
             {
-                Background      = Br("Bg"),
-                BorderBrush     = Br("Border"),
+                Background      = Br("WindowBg"),
+                BorderBrush     = Br("BorderColor"),
                 BorderThickness = new Thickness(1),
                 CornerRadius    = new CornerRadius(6)
             };
@@ -2934,7 +3028,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
             // Title bar
             var titleBar = new System.Windows.Controls.Border
             {
-                Background   = Br("Panel"),
+                Background   = Br("Surface"),
                 CornerRadius = new CornerRadius(6, 6, 0, 0)
             };
             var titleText = new System.Windows.Controls.TextBlock
@@ -2975,7 +3069,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
                 Text              = message,
                 FontFamily        = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize          = 11,
-                Foreground        = Br("Text"),
+                Foreground        = Br("TextPrimary"),
                 TextWrapping      = System.Windows.TextWrapping.Wrap,
                 VerticalAlignment = VerticalAlignment.Center,
                 MaxWidth          = 370
@@ -2987,7 +3081,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
             // Button bar
             var btnBar = new System.Windows.Controls.Border
             {
-                Background   = Br("Panel"),
+                Background   = Br("Surface"),
                 CornerRadius = new CornerRadius(0, 0, 6, 6)
             };
             var btnStack = new System.Windows.Controls.StackPanel
@@ -3083,11 +3177,11 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
                 }
 
                 // Frameless dark window matching app style
-                var bgBrush   = (SolidColorBrush)FindResource("Bg");
-                var panelBrush = (SolidColorBrush)FindResource("Panel");
-                var borderBrush = (SolidColorBrush)FindResource("Border");
-                var cardBrush  = (SolidColorBrush)FindResource("Card");
-                var textBrush  = (SolidColorBrush)FindResource("Text");
+                var bgBrush   = (SolidColorBrush)FindResource("WindowBg");
+                var panelBrush = (SolidColorBrush)FindResource("Surface");
+                var borderBrush = (SolidColorBrush)FindResource("BorderColor");
+                var cardBrush  = (SolidColorBrush)FindResource("CardBg");
+                var textBrush  = (SolidColorBrush)FindResource("TextPrimary");
                 var accentBrush = (SolidColorBrush)FindResource("Accent");
 
                 var tb = new System.Windows.Controls.TextBox
@@ -3122,7 +3216,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
                     Text       = Lang.T("LogWindowLive"),
                     FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                     FontSize   = 10,
-                    Foreground = (SolidColorBrush)FindResource("Green"),
+                    Foreground = (SolidColorBrush)FindResource("Success"),
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin     = new Thickness(0, 0, 12, 0)
                 };
@@ -3252,7 +3346,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
                     Dispatcher.BeginInvoke(() =>
                     {
                         tailLabel.Text       = Lang.T("LogWindowStopped");
-                        tailLabel.Foreground = (SolidColorBrush)FindResource("Sub");
+                        tailLabel.Foreground = (SolidColorBrush)FindResource("TextMuted");
                     });
                 };
 
@@ -3275,10 +3369,10 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
         // ── Logging ────────────────────────────────────────────────────────────
 
         private enum LogLevel { Debug, Info, Ok, Warn }
-        private static readonly SolidColorBrush LInfo = new(Color.FromRgb(88,  166, 255));
-        private static readonly SolidColorBrush LOk   = new(Color.FromRgb(63,  185,  80));
-        private static readonly SolidColorBrush LWarn = new(Color.FromRgb(247, 129, 102));
-        private static readonly SolidColorBrush LTime = new(Color.FromRgb(48,   54,  61));
+        private static SolidColorBrush LInfo => ThemeRes.Accent;
+        private static SolidColorBrush LOk   => ThemeRes.Success;
+        private static SolidColorBrush LWarn => ThemeRes.Danger;
+        private static SolidColorBrush LTime => ThemeRes.Border;
 
         // A log entry is either a translatable key+args pair, or a raw (external) string.
         private record LogEntry(DateTime Time, LogLevel Level, string? Key, object[]? Args, string? Raw);
@@ -3371,6 +3465,60 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
             _settingsWindow.Show();
         }
 
+        // ── Theme toggle button (title bar) ───────────────────────────────────
+        // Cycles: Dark → Light → Auto, updates icon, applies immediately
+        private void ThemeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_cfg.AutoTheme)
+            {
+                // Auto → Dark: disable auto, force dark theme
+                _cfg.AutoTheme   = false;
+                var dark = _cfg.ActiveDarkTheme;
+                _cfg.ActiveTheme = dark;
+                ThemeManager.Instance.Load(dark);
+            }
+            else
+            {
+                bool systemDark = ThemeManager.GetSystemIsDark();
+                bool currentIsDark = ThemeManager.Instance.Current.Type
+                    .Equals("dark", StringComparison.OrdinalIgnoreCase);
+
+                if (currentIsDark)
+                {
+                    // Dark → Light
+                    var light = _cfg.ActiveLightTheme;
+                    _cfg.ActiveTheme = light;
+                    ThemeManager.Instance.Load(light);
+                }
+                else
+                {
+                    // Light → Auto
+                    _cfg.AutoTheme = true;
+                    var target = systemDark ? _cfg.ActiveDarkTheme : _cfg.ActiveLightTheme;
+                    _cfg.ActiveTheme = target;
+                    ThemeManager.Instance.Load(target);
+                }
+            }
+            AppConfig.SaveThemeConfig(_cfg.ActiveTheme, _cfg.ActiveDarkTheme,
+                                      _cfg.ActiveLightTheme, _cfg.AutoTheme);
+            UpdateThemeToggleIcon();
+
+            // Refresh settings window if open
+            if (_settingsWindow is { IsVisible: true } sw)
+                sw.RefreshThemeSection();
+        }
+
+        internal void UpdateThemeToggleIcon()
+        {
+            if (ThemeToggleBtn == null) return;
+            if (_cfg.AutoTheme)
+                ThemeToggleBtn.Content = "⚡";
+            else if (ThemeManager.Instance.Current.Type.Equals("light", StringComparison.OrdinalIgnoreCase))
+                ThemeToggleBtn.Content = "☀";
+            else
+                ThemeToggleBtn.Content = "🌙";
+        }
+
         // Public wrappers used by SettingsWindow
         public void LogDebugPublic(string key, params object[] args) => LogDebug(key, args);
         public void OpenWireGuardGui()  => OpenWireGuardGui_Click(this, new RoutedEventArgs());
@@ -3379,6 +3527,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
         public bool   IsInstalledCheck()        => IsInstalled();
         public string? GetInstalledPathPublic()  => GetInstalledPath();
         public AppConfig GetConfig()             => _cfg;
+        public static AppConfig? GetConfigStatic() => _cfg;
         public void   SaveConfigPublic()         => SaveConfig();
         public void   SetMode(AppMode mode)
         {
@@ -3595,7 +3744,7 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
                 System.Security.Principal.WindowsIdentity.GetCurrent())
                 .IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
             AdminLabel.Text       = admin ? Lang.T("LogAdminYes") : Lang.T("LogAdminNo");
-            AdminLabel.Foreground = admin ? (SolidColorBrush)FindResource("Green") : (SolidColorBrush)FindResource("Red");
+            AdminLabel.Foreground = admin ? (SolidColorBrush)FindResource("Success") : (SolidColorBrush)FindResource("Danger");
         }
     }
 
@@ -3606,5 +3755,17 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
         public string Name { get; }
         public LangItem(string code, string name) { Code = code; Name = name; }
         public override string ToString() => Name;
+    }
+
+    public class ThemePickerItem
+    {
+        public string FolderName   { get; }
+        public string DisplayName  { get; }
+        public ThemePickerItem(string folder, string display)
+        {
+            FolderName  = folder;
+            DisplayName = display;
+        }
+        public override string ToString() => DisplayName;
     }
 }

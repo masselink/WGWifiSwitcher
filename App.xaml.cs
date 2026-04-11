@@ -15,6 +15,25 @@ namespace MasselGUARD
         private WinForms.ToolStripMenuItem? _tunnelMenuHeader;
         private MainWindow? _mainWindow;
         private Mutex?      _instanceMutex;
+        private bool        _lastSystemDark = true;
+
+        // ── System theme polling ──────────────────────────────────────────────
+        private void PollSystemTheme()
+        {
+            var cfg = MainWindow.GetConfigStatic();
+            if (cfg == null || !cfg.AutoTheme) return;
+
+            bool isDark = ThemeManager.GetSystemIsDark();
+            if (isDark == _lastSystemDark) return;
+            _lastSystemDark = isDark;
+
+            var target = isDark ? cfg.ActiveDarkTheme : cfg.ActiveLightTheme;
+            if (!string.IsNullOrEmpty(target) && target != ThemeManager.Instance.CurrentThemeName)
+            {
+                ThemeManager.Instance.Load(target);
+                cfg.ActiveTheme = target;
+            }
+        }
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -22,6 +41,18 @@ namespace MasselGUARD
 
             // ── 1. Load language immediately — needed by all dialogs below ───
             Lang.Instance.Load(AppConfig.LoadLanguage());
+
+            // ── 1b. Bootstrap theme ───────────────────────────────────────────
+            ThemeManager.Instance.Load(AppConfig.LoadTheme());
+            ThemeManager.Instance.ThemeChanged += OnThemeChanged;
+
+            // ── 1c. System theme auto-switch polling ─────────────────────────
+            var sysPollTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(5)
+            };
+            sysPollTimer.Tick += (_, _) => PollSystemTheme();
+            sysPollTimer.Start();
 
             // ── 2. Single-instance check (mutex) ────────────────────────────
             bool isNewInstance = false;
@@ -67,9 +98,9 @@ namespace MasselGUARD
         {
             _trayIcon = new WinForms.NotifyIcon
             {
-                Text = "MasselGUARD v2.0",
+                Text    = ThemeManager.Instance.Current.AppName,
                 Visible = true,
-                Icon = TrayIconHelper.CreateIcon()
+                Icon    = GetTrayIcon(active: false)
             };
 
             _trayMenu = new WinForms.ContextMenuStrip();
@@ -117,10 +148,24 @@ namespace MasselGUARD
         public void UpdateTrayStatus(string tunnelName, bool active)
         {
             if (_trayIcon == null) return;
-            _trayIcon.Text = active
-                ? Lang.T("TrayActive", tunnelName)
-                : Lang.T("TrayIdle");
-            _trayIcon.Icon = TrayIconHelper.CreateIcon(active);
+            var appName = ThemeManager.Instance.Current.AppName;
+            _trayIcon.Text = active ? Lang.T("TrayActive", tunnelName) : appName;
+            _trayIcon.Icon = GetTrayIcon(active);
+        }
+
+        private static System.Drawing.Icon GetTrayIcon(bool active)
+        {
+            // Custom theme icon takes precedence; fall back to built-in shield
+            if (Application.Current.Resources["Theme.TrayIcon"] is System.Drawing.Icon custom)
+                return custom;
+            return TrayIconHelper.CreateIcon(active);
+        }
+
+        private void OnThemeChanged(object? sender, EventArgs e)
+        {
+            if (_trayIcon == null) return;
+            _trayIcon.Text = ThemeManager.Instance.Current.AppName;
+            _trayIcon.Icon = GetTrayIcon(active: false);
         }
 
         public void RebuildTrayTunnelMenu(List<string> tunnels, List<string> active)

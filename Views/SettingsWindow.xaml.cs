@@ -12,6 +12,7 @@ namespace MasselGUARD.Views
         private ReleaseInfo? _pendingRelease;
         private bool _loading = true;
         private string _activeTab = "General";
+        private bool _themeSwitching = false;
 
         public SettingsWindow(MainWindow main)
         {
@@ -35,6 +36,9 @@ namespace MasselGUARD.Views
                     break;
                 }
             }
+
+            // ── Theme picker ─────────────────────────────────────────────────
+            PopulateThemePicker();
 
             // ── App mode radio buttons ────────────────────────────────────────
             ApplyModeToRadios(_main.GetConfig().Mode);
@@ -173,8 +177,7 @@ namespace MasselGUARD.Views
             }
 
             DllStatusLabel.Text       = lines.ToString().TrimEnd();
-            DllStatusLabel.Foreground = (System.Windows.Media.SolidColorBrush)FindResource(
-                allOk ? "Green" : "Red");
+            DllStatusLabel.Foreground = allOk ? ThemeRes.Success : ThemeRes.Danger;
         }
 
         // ── Install state ─────────────────────────────────────────────────────
@@ -411,13 +414,13 @@ namespace MasselGUARD.Views
             {
                 OrphanStatusLabel.Text = Lang.T("OrphansNone");
                 OrphanStatusLabel.Foreground =
-                    (System.Windows.Media.SolidColorBrush)FindResource("Green");
+                    (System.Windows.Media.SolidColorBrush)FindResource("Success");
                 return;
             }
 
             OrphanStatusLabel.Text = Lang.T("OrphansFound", _lastOrphans.Count);
             OrphanStatusLabel.Foreground =
-                (System.Windows.Media.SolidColorBrush)FindResource("Red");
+                (System.Windows.Media.SolidColorBrush)FindResource("Danger");
 
             // Build one row per orphan
             foreach (var orphan in _lastOrphans)
@@ -443,7 +446,7 @@ namespace MasselGUARD.Views
                 FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize   = 11,
                 FontWeight = FontWeights.Bold,
-                Foreground = (System.Windows.Media.SolidColorBrush)FindResource("Text")
+                Foreground = (System.Windows.Media.SolidColorBrush)FindResource("TextPrimary")
             };
             var stateLabel = new System.Windows.Controls.TextBlock
             {
@@ -452,8 +455,7 @@ namespace MasselGUARD.Views
                     : Lang.T("OrphansTunnelStale"),
                 FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize   = 9,
-                Foreground = (System.Windows.Media.SolidColorBrush)FindResource(
-                    orphan.TunnelActive ? "Red" : "Sub")
+                Foreground = orphan.TunnelActive ? ThemeRes.Danger : ThemeRes.TextMuted
             };
             info.Children.Add(nameLabel);
             info.Children.Add(stateLabel);
@@ -508,5 +510,162 @@ namespace MasselGUARD.Views
         }
 
         private void CloseBtn_Click(object sender, RoutedEventArgs e) => Close();
+
+        // ── Theme section ─────────────────────────────────────────────────────
+        private void PopulateThemePicker()
+        {
+            _themeSwitching = true;
+            var themes = ThemeManager.AvailableThemes();
+
+            // Show/hide section
+            if (ThemePickerCard != null)
+                ThemePickerCard.Visibility = themes.Count > 0
+                    ? System.Windows.Visibility.Visible
+                    : System.Windows.Visibility.Collapsed;
+
+            // Populate both pickers with all available themes
+            PopulatePicker(DarkThemePicker,  themes, _main.GetConfig().ActiveDarkTheme);
+            PopulatePicker(LightThemePicker, themes, _main.GetConfig().ActiveLightTheme);
+
+            // Auto-switch toggle
+            AutoThemeToggle.IsChecked = _main.GetConfig().AutoTheme;
+
+            RefreshThemeInfo(DarkThemePicker,  DarkThemeInfoPanel,  DarkThemeInfoText);
+            RefreshThemeInfo(LightThemePicker, LightThemeInfoPanel, LightThemeInfoText);
+
+            _themeSwitching = false;
+        }
+
+        private static void PopulatePicker(
+            System.Windows.Controls.ComboBox picker,
+            List<string> themes, string selectedFolder)
+        {
+            picker.Items.Clear();
+            ThemePickerItem? sel = null;
+            foreach (var folder in themes)
+            {
+                var item = new ThemePickerItem(folder, ThemeManager.GetThemeDisplayName(folder));
+                picker.Items.Add(item);
+                if (folder == selectedFolder) sel = item;
+            }
+            picker.SelectedItem = sel ?? picker.Items.OfType<ThemePickerItem>().FirstOrDefault();
+        }
+
+        private static void RefreshThemeInfo(
+            System.Windows.Controls.ComboBox picker,
+            System.Windows.Controls.Border panel,
+            System.Windows.Controls.TextBlock label)
+        {
+            if (picker.SelectedItem is not ThemePickerItem item)
+            {
+                panel.Visibility = System.Windows.Visibility.Collapsed;
+                return;
+            }
+            var meta = ThemeManager.GetThemeMetadata(item.FolderName);
+            if (meta == null) { panel.Visibility = System.Windows.Visibility.Collapsed; return; }
+
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(meta.Type))
+                parts.Add($"{meta.Type[0..1].ToUpper()}{meta.Type[1..].ToLower()} theme");
+            if (!string.IsNullOrWhiteSpace(meta.Creator))
+                parts.Add($"By {ThemeManager.SanitizeInfo(meta.Creator, 60)}");
+            var desc = ThemeManager.SanitizeInfo(meta.Description, 150);
+            if (!string.IsNullOrWhiteSpace(desc))
+                parts.Add(desc);
+
+            if (parts.Count == 0)
+            {
+                panel.Visibility = System.Windows.Visibility.Collapsed;
+                return;
+            }
+            label.Text = string.Join("  ·  ", parts.Take(3));
+            panel.Visibility = System.Windows.Visibility.Visible;
+        }
+
+        // Called from MainWindow when title-bar toggle changes
+        public void RefreshThemeSection()
+        {
+            _themeSwitching = true;
+            AutoThemeToggle.IsChecked = _main.GetConfig().AutoTheme;
+            // Re-select the currently active dark/light folders
+            SelectPickerItem(DarkThemePicker,  _main.GetConfig().ActiveDarkTheme);
+            SelectPickerItem(LightThemePicker, _main.GetConfig().ActiveLightTheme);
+            _themeSwitching = false;
+            _main.UpdateThemeToggleIcon();
+        }
+
+        private static void SelectPickerItem(System.Windows.Controls.ComboBox picker, string folder)
+        {
+            foreach (ThemePickerItem item in picker.Items)
+                if (item.FolderName == folder) { picker.SelectedItem = item; return; }
+        }
+
+        private void AutoTheme_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_loading || _themeSwitching) return;
+            var cfg = _main.GetConfig();
+            cfg.AutoTheme = AutoThemeToggle.IsChecked == true;
+
+            if (cfg.AutoTheme)
+            {
+                // Apply the correct theme for the current system preference
+                bool isDark = ThemeManager.GetSystemIsDark();
+                var target = isDark ? cfg.ActiveDarkTheme : cfg.ActiveLightTheme;
+                if (!string.IsNullOrEmpty(target))
+                {
+                    ThemeManager.Instance.Load(target);
+                    cfg.ActiveTheme = target;
+                }
+            }
+            AppConfig.SaveThemeConfig(cfg.ActiveTheme, cfg.ActiveDarkTheme,
+                                      cfg.ActiveLightTheme, cfg.AutoTheme);
+            _main.UpdateThemeToggleIcon();
+        }
+
+        private void DarkThemePicker_SelectionChanged(object sender,
+            System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_loading || _themeSwitching) return;
+            if (DarkThemePicker.SelectedItem is not ThemePickerItem item) return;
+            var cfg = _main.GetConfig();
+            cfg.ActiveDarkTheme = item.FolderName;
+
+            // If not auto mode, apply immediately when this is the active type
+            bool currentIsDark = ThemeManager.Instance.Current.Type
+                .Equals("dark", StringComparison.OrdinalIgnoreCase);
+            if (!cfg.AutoTheme || ThemeManager.GetSystemIsDark())
+            {
+                ThemeManager.Instance.Load(item.FolderName);
+                cfg.ActiveTheme = item.FolderName;
+            }
+            AppConfig.SaveThemeConfig(cfg.ActiveTheme, cfg.ActiveDarkTheme,
+                                      cfg.ActiveLightTheme, cfg.AutoTheme);
+            _main.UpdateThemeToggleIcon();
+            RefreshThemeInfo(DarkThemePicker, DarkThemeInfoPanel, DarkThemeInfoText);
+        }
+
+        private void LightThemePicker_SelectionChanged(object sender,
+            System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_loading || _themeSwitching) return;
+            if (LightThemePicker.SelectedItem is not ThemePickerItem item) return;
+            var cfg = _main.GetConfig();
+            cfg.ActiveLightTheme = item.FolderName;
+
+            // Apply immediately if system is light or auto is off and current is light
+            if (cfg.AutoTheme ? !ThemeManager.GetSystemIsDark() :
+                ThemeManager.Instance.Current.Type.Equals("light", StringComparison.OrdinalIgnoreCase))
+            {
+                ThemeManager.Instance.Load(item.FolderName);
+                cfg.ActiveTheme = item.FolderName;
+            }
+            AppConfig.SaveThemeConfig(cfg.ActiveTheme, cfg.ActiveDarkTheme,
+                                      cfg.ActiveLightTheme, cfg.AutoTheme);
+            _main.UpdateThemeToggleIcon();
+            RefreshThemeInfo(LightThemePicker, LightThemeInfoPanel, LightThemeInfoText);
+        }
+
+        // kept for compatibility (old ThemePicker reference removed)
+        private void UpdateThemeFolderLabel() { }
     }
 }

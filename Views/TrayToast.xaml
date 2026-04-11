@@ -7,34 +7,42 @@
         ShowInTaskbar="False" Topmost="True"
         WindowStartupLocation="Manual">
 
-    <Border Background="{StaticResource Panel}"
-            BorderBrush="{StaticResource Accent}"
-            BorderThickness="1" CornerRadius="6">
+    <Border Background="{DynamicResource Surface}"
+            BorderBrush="{DynamicResource Accent}"
+            BorderThickness="1" CornerRadius="{DynamicResource Theme.CornerRadius}">
         <StackPanel>
 
             <!-- Header: app icon + name -->
-            <Border Background="{StaticResource Bg}"
-                    CornerRadius="6,6,0,0"
+            <Border Background="{DynamicResource WindowBg}"
+                    CornerRadius="{DynamicResource Theme.CornerRadiusTop}"
                     Padding="12,9">
                 <StackPanel Orientation="Horizontal">
-                    <Image x:Name="AppIcon" Width="16" Height="16"
+                    <!-- Custom logo -->
+                    <Image Source="{DynamicResource Theme.Logo}"
+                           Width="16" Height="16"
+                           Visibility="{DynamicResource Theme.HasLogo}"
                            VerticalAlignment="Center" Margin="0,0,8,0"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <TextBlock Text="MasselGUARD"
-                               FontFamily="Consolas" FontSize="12" FontWeight="Bold"
-                               Foreground="{StaticResource Accent}"
+                    <!-- Built-in icon -->
+                    <Image x:Name="AppIcon" Width="16" Height="16"
+                           Visibility="{DynamicResource Theme.HasBuiltinIcon}"
+                           VerticalAlignment="Center" Margin="0,0,8,0"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="{DynamicResource Theme.AppName}"
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="12" FontWeight="Bold"
+                               Foreground="{DynamicResource Accent}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
             </Border>
 
             <!-- Divider -->
-            <Rectangle Height="1" Fill="{StaticResource Border}"/>
+            <Rectangle Height="1" Fill="{DynamicResource BorderColor}"/>
 
             <!-- Message body -->
             <Border Padding="14,13">
                 <TextBlock x:Name="MessageLabel"
-                           FontFamily="Consolas" FontSize="15"
-                           Foreground="{StaticResource Text}"
+                           FontFamily="{DynamicResource Theme.FontFamily}" FontSize="15"
+                           Foreground="{DynamicResource TextPrimary}"
                            TextWrapping="Wrap" LineHeight="22"
                            MaxWidth="270"/>
             </Border>

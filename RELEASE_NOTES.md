@@ -2,6 +2,32 @@
 
 ---
 
+## v2.3.0
+
+### New features
+
+**Theme system**
+MasselGUARD now supports fully custom themes. Themes live in `theme/<name>/` folders next to the executable. Each folder contains a `theme.json` describing the full visual appearance of the app.
+
+`theme.json` supports:
+- **Colour palette** — background, panel, card, border, accent, green, red, text, sub, active-row
+- **Font family and base font size** — any font installed on the system
+- **Corner radius** — controls all window and card corners simultaneously
+- **Background image** — PNG/JPG placed in the theme folder, shown behind the UI with configurable opacity
+- **Custom logo** — replaces the built-in shield icon in the title bar and tray toast
+- **App name** — shown in the title bar, tray tooltip, and toast notifications (not in the About section)
+- **Custom variables** — arbitrary key/value pairs exposed as `Var.<key>` dynamic resources
+
+A built-in `default` theme is auto-generated on first run if the `theme/` folder is missing.
+
+**Theme switching**
+Active theme is selected in **Settings → General → Appearance**. Themes hot-swap instantly without restarting.
+
+**Font-adjustable UI**
+All UI text honours `fontFamily` and `fontSize` from the active theme via `{DynamicResource Theme.FontFamily}`.
+
+---
+
 ## v2.2.1
 
 ### Bug fixes

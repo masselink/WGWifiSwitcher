@@ -51,7 +51,7 @@ namespace MasselGUARD.Views
 
             var dots   = new[] { Dot0, Dot1, Dot2, Dot3, Dot4 };
             var accent = (SolidColorBrush)FindResource("Accent");
-            var dim    = (SolidColorBrush)FindResource("Border");
+            var dim    = (SolidColorBrush)FindResource("BorderColor");
             for (int i = 0; i < dots.Length; i++)
                 dots[i].Fill = i == step ? accent : dim;
 
@@ -93,7 +93,7 @@ namespace MasselGUARD.Views
                 }
             }
             ModeStatusLabel.Text       = lines.ToString().TrimEnd();
-            ModeStatusLabel.Foreground = (SolidColorBrush)FindResource(allOk ? "Green" : "Red");
+            ModeStatusLabel.Foreground = allOk ? ThemeRes.Success : ThemeRes.Danger;
         }
 
         // ── Navigation ────────────────────────────────────────────────────────

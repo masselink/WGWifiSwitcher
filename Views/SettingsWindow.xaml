@@ -8,9 +8,9 @@
         Background="Transparent" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner">
 
-    <Border Background="{StaticResource Bg}"
-            BorderBrush="{StaticResource Accent}"
-            BorderThickness="1" CornerRadius="6">
+    <Border Background="{DynamicResource WindowBg}"
+            BorderBrush="{DynamicResource Accent}"
+            BorderThickness="1" CornerRadius="{DynamicResource Theme.CornerRadius}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="44"/>
@@ -19,13 +19,13 @@
             </Grid.RowDefinitions>
 
             <!-- Title bar -->
-            <Border Grid.Row="0" Background="{StaticResource Panel}"
-                    CornerRadius="6,6,0,0"
+            <Border Grid.Row="0" Background="{DynamicResource Surface}"
+                    CornerRadius="{DynamicResource Theme.CornerRadiusTop}"
                     MouseLeftButtonDown="TitleBar_MouseDown">
                 <Grid>
                     <TextBlock Text="{Binding [SettingsTitle], Source={x:Static local:Lang.Instance}}"
-                               FontFamily="Consolas" FontSize="13" FontWeight="Bold"
-                               Foreground="{StaticResource Accent}"
+                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="13" FontWeight="Bold"
+                               Foreground="{DynamicResource Accent}"
                                VerticalAlignment="Center" Margin="16,0"/>
                     <Button Content="&#x2715;" Style="{StaticResource DangerBtn}"
                             HorizontalAlignment="Right"
@@ -43,8 +43,8 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Tab sidebar -->
-                <Border Grid.Column="0" Background="{StaticResource Panel}"
-                        BorderBrush="{StaticResource Border}" BorderThickness="0,0,1,0">
+                <Border Grid.Column="0" Background="{DynamicResource Surface}"
+                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,1,0">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*"/>
@@ -59,10 +59,10 @@
                                     Content="{Binding [SettingsTabAbout],    Source={x:Static local:Lang.Instance}}"/>
                         </StackPanel>
                         <!-- Wizard button pinned at bottom of sidebar -->
-                        <Border Grid.Row="1" BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0">
+                        <Border Grid.Row="1" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,1,0,0">
                             <Button Style="{StaticResource SideTabBtn}" Click="RunWizard_Click"
                                     Content="{Binding [WizardRunAgain], Source={x:Static local:Lang.Instance}}"
-                                    Padding="12,12" TextBlock.Foreground="{StaticResource Sub}"/>
+                                    Padding="12,12" TextBlock.Foreground="{DynamicResource TextMuted}"/>
                         </Border>
                     </Grid>
                 </Border>
@@ -86,12 +86,128 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0"
                                                Text="{Binding [SettingsLanguageLabel], Source={x:Static local:Lang.Instance}}"
-                                               FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Text}"
+                                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextPrimary}"
                                                VerticalAlignment="Center"/>
                                     <ComboBox Grid.Column="1" x:Name="LanguagePicker"
                                               MinWidth="160" FontSize="12" Padding="8,4"
                                               SelectionChanged="LanguagePicker_SelectionChanged"/>
                                 </Grid>
+                            </Border>
+
+                            <!-- ── APPEARANCE ──────────────────────────────── -->
+                            <TextBlock Text="{Binding [SettingsSectionTheme], Source={x:Static local:Lang.Instance}}"
+                                       Style="{StaticResource SettingsSectionHeader}"/>
+
+                            <!-- Auto-switch toggle -->
+                            <Border x:Name="ThemePickerCard" Style="{StaticResource SettingsCard}" Margin="0,0,0,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding [SettingsThemeAutoLabel], Source={x:Static local:Lang.Instance}}"
+                                                   FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11"
+                                                   Foreground="{DynamicResource TextPrimary}"/>
+                                        <TextBlock Text="{Binding [SettingsThemeAutoDesc], Source={x:Static local:Lang.Instance}}"
+                                                   FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9"
+                                                   Foreground="{DynamicResource TextMuted}" Margin="0,2,0,0"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <ToggleButton Grid.Column="1" x:Name="AutoThemeToggle"
+                                                  Width="44" Height="22" Margin="12,0,0,0"
+                                                  VerticalAlignment="Center"
+                                                  Style="{StaticResource ToggleSwitch}"
+                                                  Checked="AutoTheme_Changed" Unchecked="AutoTheme_Changed"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Dark theme row -->
+                            <TextBlock Text="{Binding [SettingsThemeDarkLabel], Source={x:Static local:Lang.Instance}}"
+                                       Style="{StaticResource SettingsSectionHeader}" Margin="0,8,0,4"/>
+                            <Border Style="{StaticResource SettingsCard}" Margin="0,0,0,4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding [SettingsThemeLabel], Source={x:Static local:Lang.Instance}}"
+                                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11"
+                                               Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                                    <ComboBox Grid.Column="1" x:Name="DarkThemePicker"
+                                              MinWidth="180" Padding="8,4"
+                                              SelectionChanged="DarkThemePicker_SelectionChanged">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="0,2">
+                                                    <TextBlock Text="{Binding DisplayName}"
+                                                               FontFamily="{DynamicResource Theme.FontFamily}"
+                                                               FontSize="11" Foreground="{DynamicResource TextPrimary}"/>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding [SettingsThemeFolderPrefix], Source={x:Static local:Lang.Instance}}"
+                                                                   FontFamily="{DynamicResource Theme.FontFamily}"
+                                                                   FontSize="9" Foreground="{DynamicResource TextMuted}"/>
+                                                        <TextBlock Text="{Binding FolderName}"
+                                                                   FontFamily="{DynamicResource Theme.FontFamily}"
+                                                                   FontSize="9" Foreground="{DynamicResource TextMuted}"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+                            </Border>
+                            <!-- Dark theme info -->
+                            <Border x:Name="DarkThemeInfoPanel" Style="{StaticResource SettingsCard}" Margin="0,0,0,12"
+                                    Visibility="Collapsed">
+                                <TextBlock x:Name="DarkThemeInfoText"
+                                           FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9"
+                                           Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
+                            </Border>
+
+                            <!-- Light theme row -->
+                            <TextBlock Text="{Binding [SettingsThemeLightLabel], Source={x:Static local:Lang.Instance}}"
+                                       Style="{StaticResource SettingsSectionHeader}" Margin="0,0,0,4"/>
+                            <Border Style="{StaticResource SettingsCard}" Margin="0,0,0,4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding [SettingsThemeLabel], Source={x:Static local:Lang.Instance}}"
+                                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11"
+                                               Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                                    <ComboBox Grid.Column="1" x:Name="LightThemePicker"
+                                              MinWidth="180" Padding="8,4"
+                                              SelectionChanged="LightThemePicker_SelectionChanged">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="0,2">
+                                                    <TextBlock Text="{Binding DisplayName}"
+                                                               FontFamily="{DynamicResource Theme.FontFamily}"
+                                                               FontSize="11" Foreground="{DynamicResource TextPrimary}"/>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding [SettingsThemeFolderPrefix], Source={x:Static local:Lang.Instance}}"
+                                                                   FontFamily="{DynamicResource Theme.FontFamily}"
+                                                                   FontSize="9" Foreground="{DynamicResource TextMuted}"/>
+                                                        <TextBlock Text="{Binding FolderName}"
+                                                                   FontFamily="{DynamicResource Theme.FontFamily}"
+                                                                   FontSize="9" Foreground="{DynamicResource TextMuted}"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+                            </Border>
+                            <!-- Light theme info -->
+                            <Border x:Name="LightThemeInfoPanel" Style="{StaticResource SettingsCard}" Margin="0,0,0,16"
+                                    Visibility="Collapsed">
+                                <TextBlock x:Name="LightThemeInfoText"
+                                           FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9"
+                                           Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
                             </Border>
 
                             <!-- App Mode -->
@@ -103,9 +219,9 @@
                                                  Style="{StaticResource ModeRadio}" Margin="0,0,0,8">
                                         <StackPanel>
                                             <TextBlock Text="{Binding [ModeStandaloneLabel], Source={x:Static local:Lang.Instance}}"
-                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Text}"/>
+                                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
                                             <TextBlock Text="{Binding [ModeStandaloneDesc], Source={x:Static local:Lang.Instance}}"
-                                                       FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
+                                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9" Foreground="{DynamicResource TextMuted}"
                                                        TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </RadioButton>
@@ -113,9 +229,9 @@
                                                  Style="{StaticResource ModeRadio}" Margin="0,0,0,8">
                                         <StackPanel>
                                             <TextBlock Text="{Binding [ModeCompanionLabel], Source={x:Static local:Lang.Instance}}"
-                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Text}"/>
+                                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
                                             <TextBlock Text="{Binding [ModeCompanionDesc], Source={x:Static local:Lang.Instance}}"
-                                                       FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
+                                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9" Foreground="{DynamicResource TextMuted}"
                                                        TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </RadioButton>
@@ -123,17 +239,17 @@
                                                  Style="{StaticResource ModeRadio}">
                                         <StackPanel>
                                             <TextBlock Text="{Binding [ModeMixedLabel], Source={x:Static local:Lang.Instance}}"
-                                                       FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Text}"/>
+                                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
                                             <TextBlock Text="{Binding [ModeMixedDesc], Source={x:Static local:Lang.Instance}}"
-                                                       FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
+                                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9" Foreground="{DynamicResource TextMuted}"
                                                        TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </RadioButton>
-                                    <Border x:Name="DllStatusPanel" Background="{StaticResource Panel}"
-                                            BorderBrush="{StaticResource Border}" BorderThickness="1"
+                                    <Border x:Name="DllStatusPanel" Background="{DynamicResource Surface}"
+                                            BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
                                             CornerRadius="3" Padding="10,7" Margin="0,10,0,0">
-                                        <TextBlock x:Name="DllStatusLabel" FontFamily="Consolas" FontSize="10"
-                                                   Foreground="{StaticResource Sub}" TextWrapping="Wrap"/>
+                                        <TextBlock x:Name="DllStatusLabel" FontFamily="{DynamicResource Theme.FontFamily}" FontSize="10"
+                                                   Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
                                     </Border>
                                 </StackPanel>
                             </Border>
@@ -149,9 +265,9 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0">
                                         <TextBlock Text="{Binding [SettingsModeLabel], Source={x:Static local:Lang.Instance}}"
-                                                   FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Text}"/>
+                                                   FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextPrimary}"/>
                                         <TextBlock Text="{Binding [SettingsModeDescription], Source={x:Static local:Lang.Instance}}"
-                                                   FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
+                                                   FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9" Foreground="{DynamicResource TextMuted}"
                                                    TextWrapping="Wrap" Margin="0,4,0,0"/>
                                     </StackPanel>
                                     <ToggleButton Grid.Column="1" x:Name="ManualModeToggle"
@@ -174,7 +290,7 @@
                             <Border x:Name="WireGuardSectionCard" Style="{StaticResource SettingsCard}" Margin="0,0,0,16">
                                 <StackPanel>
                                     <TextBlock Text="{Binding [SettingsWireGuardDesc], Source={x:Static local:Lang.Instance}}"
-                                               FontFamily="Consolas" FontSize="10" Foreground="{StaticResource Sub}"
+                                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="10" Foreground="{DynamicResource TextMuted}"
                                                TextWrapping="Wrap" Margin="0,0,0,10"/>
                                     <StackPanel Orientation="Horizontal">
                                         <Button Content="{Binding [BtnOpenWireGuard], Source={x:Static local:Lang.Instance}}"
@@ -198,7 +314,7 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0"
                                                Text="{Binding [SettingsLogLevel], Source={x:Static local:Lang.Instance}}"
-                                               FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Text}"
+                                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextPrimary}"
                                                VerticalAlignment="Center"/>
                                     <ComboBox Grid.Column="1" x:Name="LogLevelPicker"
                                               MinWidth="110" FontSize="11" Padding="8,4"
@@ -215,9 +331,9 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0">
                                         <TextBlock Text="{Binding [SettingsTrayPopupLabel], Source={x:Static local:Lang.Instance}}"
-                                                   FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Text}"/>
+                                                   FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextPrimary}"/>
                                         <TextBlock Text="{Binding [SettingsTrayPopup], Source={x:Static local:Lang.Instance}}"
-                                                   FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
+                                                   FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9" Foreground="{DynamicResource TextMuted}"
                                                    TextWrapping="Wrap" Margin="0,4,0,0"/>
                                     </StackPanel>
                                     <ToggleButton Grid.Column="1" x:Name="TrayPopupToggle"
@@ -239,19 +355,19 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0">
                                         <TextBlock x:Name="InstallStatusLabel"
-                                                   FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Text}"
+                                                   FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextPrimary}"
                                                    TextWrapping="Wrap"/>
                                         <TextBlock x:Name="InstallPathLabel"
-                                                   FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
+                                                   FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9" Foreground="{DynamicResource TextMuted}"
                                                    TextWrapping="Wrap" Margin="0,4,0,0"/>
                                         <CheckBox x:Name="SuppressUpdatePromptToggle"
-                                                  FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
+                                                  FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9" Foreground="{DynamicResource TextMuted}"
                                                   Margin="0,8,0,0"
                                                   Checked="SuppressUpdatePrompt_Changed"
                                                   Unchecked="SuppressUpdatePrompt_Changed">
                                             <CheckBox.Content>
                                                 <TextBlock Text="{Binding [SettingsSuppressUpdatePrompt], Source={x:Static local:Lang.Instance}}"
-                                                           FontFamily="Consolas" FontSize="9" Foreground="{StaticResource Sub}"
+                                                           FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9" Foreground="{DynamicResource TextMuted}"
                                                            TextWrapping="Wrap" MaxWidth="260"/>
                                             </CheckBox.Content>
                                         </CheckBox>
@@ -269,7 +385,7 @@
                             <Border Style="{StaticResource SettingsCard}">
                                 <StackPanel>
                                     <!-- Warning banner -->
-                                    <Border Background="#3D2A0A" BorderBrush="#D29922"
+                                    <Border Background="{DynamicResource WarningBg}" BorderBrush="{DynamicResource WarningColor}"
                                             BorderThickness="1" CornerRadius="3"
                                             Padding="10,7" Margin="0,0,0,10">
                                         <Grid>
@@ -278,13 +394,13 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="⚠  "
-                                                       FontFamily="Consolas" FontSize="10"
-                                                       Foreground="#D29922" VerticalAlignment="Top"
+                                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="10"
+                                                       Foreground="{DynamicResource WarningColor}" VerticalAlignment="Top"
                                                        Margin="0,0,2,0"/>
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding [OrphansDescription], Source={x:Static local:Lang.Instance}}"
-                                                       FontFamily="Consolas" FontSize="9"
-                                                       Foreground="#D29922"
+                                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9"
+                                                       Foreground="{DynamicResource WarningColor}"
                                                        TextWrapping="Wrap"/>
                                         </Grid>
                                     </Border>
@@ -297,8 +413,8 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock x:Name="OrphanStatusLabel"
                                                    Grid.Column="0"
-                                                   FontFamily="Consolas" FontSize="10"
-                                                   Foreground="{StaticResource Sub}"
+                                                   FontFamily="{DynamicResource Theme.FontFamily}" FontSize="10"
+                                                   Foreground="{DynamicResource TextMuted}"
                                                    VerticalAlignment="Center"
                                                    TextWrapping="Wrap"/>
                                         <Button Grid.Column="1"
@@ -339,10 +455,10 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0">
                                             <TextBlock x:Name="UpdateStatusLabel"
-                                                       FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Text}"
+                                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextPrimary}"
                                                        TextWrapping="Wrap"/>
                                             <TextBlock x:Name="LastCheckedLabel"
-                                                       FontFamily="Consolas" FontSize="10" Foreground="{StaticResource Sub}"
+                                                       FontFamily="{DynamicResource Theme.FontFamily}" FontSize="10" Foreground="{DynamicResource TextMuted}"
                                                        Margin="0,4,0,0"/>
                                         </StackPanel>
                                         <Button Grid.Column="1" x:Name="CheckUpdateBtn"
@@ -350,7 +466,7 @@
                                                 FontSize="10" Padding="12,6" Margin="12,0,0,0"
                                                 VerticalAlignment="Top" Click="CheckUpdate_Click"/>
                                     </Grid>
-                                    <Button x:Name="DoUpdateBtn" Style="{StaticResource GreenBtn}"
+                                    <Button x:Name="DoUpdateBtn" Style="{StaticResource SuccessBtn}"
                                             FontSize="11" Padding="14,6" Margin="0,10,0,0"
                                             HorizontalAlignment="Left" Visibility="Collapsed"
                                             Click="DoUpdate_Click"/>
@@ -361,14 +477,14 @@
                             <Border Style="{StaticResource SettingsCard}">
                                 <StackPanel>
                                     <TextBlock x:Name="VersionLabel"
-                                               FontFamily="Consolas" FontSize="11" Foreground="{StaticResource Text}"/>
+                                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextPrimary}"/>
                                     <TextBlock Text="by Harold Masselink"
-                                               FontFamily="Consolas" FontSize="10" Foreground="{StaticResource Sub}"
+                                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="10" Foreground="{DynamicResource TextMuted}"
                                                Margin="0,4,0,0"/>
                                     <TextBlock x:Name="GithubLink"
                                                Text="github.com/masselink/MasselGUARD"
-                                               FontFamily="Consolas" FontSize="10"
-                                               Foreground="{StaticResource Accent}"
+                                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="10"
+                                               Foreground="{DynamicResource Accent}"
                                                Cursor="Hand" TextDecorations="Underline"
                                                Margin="0,4,0,0"
                                                MouseLeftButtonUp="GithubLink_Click"/>
@@ -381,7 +497,7 @@
             </Grid>
 
             <!-- Footer -->
-            <Border Grid.Row="2" Background="{StaticResource Panel}" CornerRadius="0,0,6,6">
+            <Border Grid.Row="2" Background="{DynamicResource Surface}" CornerRadius="{DynamicResource Theme.CornerRadiusBottom}">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                             VerticalAlignment="Center" Margin="0,0,12,0">
                     <Button Content="{Binding [BtnCancel], Source={x:Static local:Lang.Instance}}"
@@ -389,7 +505,7 @@
                             Click="CloseBtn_Click"/>
                     <Button x:Name="SaveBtn"
                             Content="{Binding [BtnSaveSettings], Source={x:Static local:Lang.Instance}}"
-                            Style="{StaticResource GreenBtn}" Padding="20,6"
+                            Style="{StaticResource SuccessBtn}" Padding="20,6"
                             Click="SaveBtn_Click"/>
                 </StackPanel>
             </Border>
