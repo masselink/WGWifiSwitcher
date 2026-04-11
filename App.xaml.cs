@@ -20,7 +20,7 @@ namespace MasselGUARD
         // ── System theme polling ──────────────────────────────────────────────
         private void PollSystemTheme()
         {
-            var cfg = MainWindow.GetConfigStatic();
+            var cfg = MasselGUARD.MainWindow.GetConfigStatic();
             if (cfg == null || !cfg.AutoTheme) return;
 
             bool isDark = ThemeManager.GetSystemIsDark();
