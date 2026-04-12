@@ -104,8 +104,7 @@ namespace MasselGUARD
             };
 
             _trayMenu = new WinForms.ContextMenuStrip();
-            _trayMenu.BackColor = System.Drawing.Color.FromArgb(22, 27, 34);
-            _trayMenu.ForeColor = System.Drawing.Color.FromArgb(230, 237, 243);
+            ApplyTrayMenuTheme();
             _trayMenu.ShowImageMargin = true;
             _trayMenu.ShowCheckMargin = false;
             _trayMenu.Renderer = new DarkMenuRenderer();
@@ -166,6 +165,22 @@ namespace MasselGUARD
             if (_trayIcon == null) return;
             _trayIcon.Text = ThemeManager.Instance.Current.AppName;
             _trayIcon.Icon = GetTrayIcon(active: false);
+            ApplyTrayMenuTheme();
+        }
+
+        private void ApplyTrayMenuTheme()
+        {
+            if (_trayMenu == null) return;
+            var bg  = GetDrawingColor("Theme.TrayBgColor",  System.Drawing.Color.FromArgb(22,  27,  34));
+            var txt = GetDrawingColor("Theme.TrayTextColor", System.Drawing.Color.FromArgb(230, 237, 243));
+            _trayMenu.BackColor = bg;
+            _trayMenu.ForeColor = txt;
+        }
+
+        private static System.Drawing.Color GetDrawingColor(string key, System.Drawing.Color fallback)
+        {
+            var v = Application.Current?.Resources[key];
+            return v is System.Drawing.Color c ? c : fallback;
         }
 
         public void RebuildTrayTunnelMenu(List<string> tunnels, List<string> active)
@@ -512,17 +527,29 @@ namespace MasselGUARD
     // Flat dark renderer — no gradients, no bright highlights
     internal class DarkMenuRenderer : System.Windows.Forms.ToolStripRenderer
     {
-        private static readonly System.Drawing.Color Bg      = System.Drawing.Color.FromArgb(22, 27, 34);
-        private static readonly System.Drawing.Color Hov     = System.Drawing.Color.FromArgb(48, 54, 61);
-        private static readonly System.Drawing.Color Sep     = System.Drawing.Color.FromArgb(48, 54, 61);
-        private static readonly System.Drawing.Color ImgCol  = System.Drawing.Color.FromArgb(16, 21, 28);
+        // All colours read from Application.Resources at render time so theme hot-swap works
+        private static System.Drawing.Color Res(string key, System.Drawing.Color fallback)
+        {
+            try
+            {
+                if (System.Windows.Application.Current?.Resources[key] is System.Drawing.Color c)
+                    return c;
+            }
+            catch { }
+            return fallback;
+        }
+
+        private static System.Drawing.Color Bg     => Res("Theme.TrayBgColor",          System.Drawing.Color.FromArgb(22,  27,  34));
+        private static System.Drawing.Color Hov    => Res("Theme.TrayHoverColor",       System.Drawing.Color.FromArgb(48,  54,  61));
+        private static System.Drawing.Color Sep    => Res("Theme.TrayBorderColor",      System.Drawing.Color.FromArgb(48,  54,  61));
+        private static System.Drawing.Color ImgCol => Res("Theme.TrayImageMarginColor", System.Drawing.Color.FromArgb(16,  21,  28));
+        private static System.Drawing.Color Txt    => Res("Theme.TrayTextColor",        System.Drawing.Color.FromArgb(230, 237, 243));
 
         protected override void OnRenderToolStripBackground(System.Windows.Forms.ToolStripRenderEventArgs e)
             => e.Graphics.Clear(Bg);
 
         protected override void OnRenderImageMargin(System.Windows.Forms.ToolStripRenderEventArgs e)
         {
-            // Paint image margin column slightly darker so dots pop
             using var b = new System.Drawing.SolidBrush(ImgCol);
             e.Graphics.FillRectangle(b, e.AffectedBounds);
         }
@@ -536,11 +563,10 @@ namespace MasselGUARD
 
         protected override void OnRenderItemText(System.Windows.Forms.ToolStripItemTextRenderEventArgs e)
         {
-            // Respect per-item ForeColor (green for active, grey for inactive)
             e.TextColor = e.Item.ForeColor != System.Drawing.Color.Empty
                           && e.Item.ForeColor != System.Drawing.SystemColors.ControlText
                         ? e.Item.ForeColor
-                        : System.Drawing.Color.FromArgb(230, 237, 243);
+                        : Txt;
             base.OnRenderItemText(e);
         }
 

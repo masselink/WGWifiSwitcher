@@ -44,6 +44,8 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="160"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0"
                                Text="{Binding [TunnelDialogName], Source={x:Static local:Lang.Instance}}"
@@ -52,6 +54,13 @@
                                Margin="0,0,12,0"/>
                     <TextBox Grid.Column="1" x:Name="NameBox"
                              FontFamily="{DynamicResource Theme.FontFamily}" FontSize="12"/>
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding [TunnelDialogGroup], Source={x:Static local:Lang.Instance}}"
+                               Style="{StaticResource FormLabel}"
+                               VerticalAlignment="Center"
+                               Margin="12,0,8,0"/>
+                    <ComboBox Grid.Column="3" x:Name="GroupPicker"
+                              FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11"/>
                 </Grid>
             </Border>
 

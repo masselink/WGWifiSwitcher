@@ -172,6 +172,37 @@ namespace MasselGUARD
             // App name
             res["Theme.AppName"] = string.IsNullOrWhiteSpace(d.AppName) ? "MasselGUARD" : d.AppName;
 
+            // ── Window chrome ─────────────────────────────────────────────────
+            res["Theme.TitleBarHeight"]      = new GridLength(Math.Max(32, d.TitleBarHeight));
+            res["Theme.ShowTitleBarIcon"]    = d.ShowTitleBarIcon    ? Visibility.Visible : Visibility.Collapsed;
+            res["Theme.ShowTitleBarAppName"] = d.ShowTitleBarAppName ? Visibility.Visible : Visibility.Collapsed;
+            res["Theme.ShowResizeGrip"]      = d.ShowResizeGrip      ? Visibility.Visible : Visibility.Collapsed;
+            res["Theme.WindowOpacity"]       = Math.Clamp(d.WindowOpacity, 0.1, 1.0);
+
+            // ── Status bar ────────────────────────────────────────────────────
+            res["Theme.ShowStatusBar"]       = d.ShowStatusBar    ? Visibility.Visible : Visibility.Collapsed;
+            res["Theme.StatusBarHeight"]     = new GridLength(d.ShowStatusBar ? Math.Max(24, d.StatusBarHeight) : 0);
+            res["Theme.ShowStatusWifi"]      = d.ShowStatusWifi   ? Visibility.Visible : Visibility.Collapsed;
+            res["Theme.ShowStatusTunnel"]    = d.ShowStatusTunnel ? Visibility.Visible : Visibility.Collapsed;
+
+            // ── Tray menu colours — fall back to semantic colours when empty ──
+            string trayBg     = Fallback(d.ColorTrayBg,          d.ColorSurface);
+            string trayHover  = Fallback(d.ColorTrayHover,       d.ColorBorder);
+            string trayText   = Fallback(d.ColorTrayText,        d.ColorTextPrimary);
+            string trayBorder = Fallback(d.ColorTrayBorder,      d.ColorBorder);
+            string trayImg    = Fallback(d.ColorTrayImageMargin, d.ColorWindowBg);
+            SetBrush(res, "TrayBg",          trayBg);
+            SetBrush(res, "TrayHover",       trayHover);
+            SetBrush(res, "TrayText",        trayText);
+            SetBrush(res, "TrayBorder",      trayBorder);
+            SetBrush(res, "TrayImageMargin", trayImg);
+            // Also store as Drawing.Color for WinForms tray menu renderer
+            res["Theme.TrayBgColor"]          = ToDrawingColor(trayBg);
+            res["Theme.TrayHoverColor"]       = ToDrawingColor(trayHover);
+            res["Theme.TrayTextColor"]        = ToDrawingColor(trayText);
+            res["Theme.TrayBorderColor"]      = ToDrawingColor(trayBorder);
+            res["Theme.TrayImageMarginColor"] = ToDrawingColor(trayImg);
+
             // Background image
             ApplyBackground(res, d, folder);
 
@@ -407,6 +438,19 @@ namespace MasselGUARD
         {
             res[key] = new SolidColorBrush(ParseColor(hex, Colors.Transparent));
         }
+
+        private static string Fallback(string value, string fallback)
+            => string.IsNullOrWhiteSpace(value) ? fallback : value;
+
+        private static System.Drawing.Color ToDrawingColor(string hex)
+        {
+            try
+            {
+                var c = (Color)ColorConverter.ConvertFromString(hex);
+                return System.Drawing.Color.FromArgb(c.A, c.R, c.G, c.B);
+            }
+            catch { return System.Drawing.Color.FromArgb(22, 27, 34); }
+        }
     }
 
     // ── Theme definition ──────────────────────────────────────────────────────
@@ -455,12 +499,43 @@ namespace MasselGUARD
         public Dictionary<string, string>? Variables { get; set; } = null;
 
         // ── Metadata ──────────────────────────────────────────────────────────
-        /// <summary>"dark" or "light" — used for auto-switching based on system preference.</summary>
         public string Type        { get; set; } = "dark";
-        /// <summary>Theme creator name — shown in the info panel (sanitized, max 60 chars).</summary>
         public string Creator     { get; set; } = "";
-        /// <summary>Short description — shown in info panel (sanitized, max 3 lines / 150 chars).</summary>
         public string Description { get; set; } = "";
+
+        // ── Window chrome ─────────────────────────────────────────────────────
+        /// <summary>Height of the title bar row in pixels. Default 48.</summary>
+        public int    TitleBarHeight      { get; set; } = 48;
+        /// <summary>Show the logo / shield icon in the title bar.</summary>
+        public bool   ShowTitleBarIcon    { get; set; } = true;
+        /// <summary>Show the app name text in the title bar.</summary>
+        public bool   ShowTitleBarAppName { get; set; } = true;
+        /// <summary>Show the resize grip in the bottom-right corner.</summary>
+        public bool   ShowResizeGrip      { get; set; } = true;
+        /// <summary>Overall window opacity (0.0 fully transparent – 1.0 fully opaque).</summary>
+        public double WindowOpacity       { get; set; } = 1.0;
+
+        // ── Status bar ────────────────────────────────────────────────────────
+        /// <summary>Show the status bar below the title bar.</summary>
+        public bool   ShowStatusBar       { get; set; } = true;
+        /// <summary>Height of the status bar row in pixels. Default 38.</summary>
+        public int    StatusBarHeight     { get; set; } = 38;
+        /// <summary>Show the WiFi network name in the status bar.</summary>
+        public bool   ShowStatusWifi      { get; set; } = true;
+        /// <summary>Show the active tunnel name in the status bar.</summary>
+        public bool   ShowStatusTunnel    { get; set; } = true;
+
+        // ── Tray menu colours ─────────────────────────────────────────────────
+        /// <summary>Tray context menu background. Defaults to colorSurface.</summary>
+        public string ColorTrayBg          { get; set; } = "";
+        /// <summary>Tray menu item hover / selected background. Defaults to colorBorder.</summary>
+        public string ColorTrayHover       { get; set; } = "";
+        /// <summary>Tray menu item text colour. Defaults to colorTextPrimary.</summary>
+        public string ColorTrayText        { get; set; } = "";
+        /// <summary>Tray menu border and separator colour. Defaults to colorBorder.</summary>
+        public string ColorTrayBorder      { get; set; } = "";
+        /// <summary>Tray menu left image-margin column colour. Defaults to colorWindowBg.</summary>
+        public string ColorTrayImageMargin { get; set; } = "";
 
         public static ThemeDefinition Default => new ThemeDefinition();
     }

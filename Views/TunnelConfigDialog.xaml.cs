@@ -12,10 +12,12 @@ namespace MasselGUARD.Views
     {
         public string? ResultName   { get; private set; }
         public string? ResultConfig { get; private set; }
+        public string  ResultGroup  { get; private set; } = "";
 
         private readonly string? _originalName;
 
-        public TunnelConfigDialog(string? existingName = null, string? existingConfig = null)
+        public TunnelConfigDialog(string? existingName = null, string? existingConfig = null,
+                                  string? existingGroup = null)
         {
             InitializeComponent();
             _originalName = existingName;
@@ -36,6 +38,14 @@ namespace MasselGUARD.Views
 
             if (!string.IsNullOrEmpty(existingConfig))
                 LoadFromConfig(existingConfig);
+
+            // Populate group picker from AppConfig
+            GroupPicker.Items.Clear();
+            GroupPicker.Items.Add("");  // (none)
+            var groups = MainWindow.GetConfigStatic()?.TunnelGroups;
+            if (groups != null)
+                foreach (var g in groups) GroupPicker.Items.Add(g.Name);
+            GroupPicker.SelectedItem = existingGroup ?? "";
         }
 
         // ── Load config into form fields ─────────────────────────────────────
@@ -160,6 +170,7 @@ namespace MasselGUARD.Views
 
             ResultName   = name;
             ResultConfig = TabRaw.IsSelected ? RawBox.Text : BuildConfigFromFields();
+            ResultGroup  = GroupPicker.SelectedItem as string ?? "";
             DialogResult = true;
         }
 

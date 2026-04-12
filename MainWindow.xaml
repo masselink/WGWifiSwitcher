@@ -10,6 +10,7 @@
         AllowsTransparency="True"
         ShowInTaskbar="True"
         ResizeMode="CanResizeWithGrip"
+        Opacity="{DynamicResource Theme.WindowOpacity}"
         Closing="Window_Closing">
 
     <Window.Resources>
@@ -28,8 +29,8 @@
 
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="48"/>
-                    <RowDefinition Height="38"/>
+                    <RowDefinition Height="{DynamicResource Theme.TitleBarHeight}"/>
+                    <RowDefinition Height="{DynamicResource Theme.StatusBarHeight}"/>
                     <RowDefinition Height="1"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -43,43 +44,50 @@
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0">
 
-                            <!-- Custom app icon in title bar -->
-                            <Image Source="{DynamicResource Theme.AppIcon}"
-                                   Width="22" Height="22" Margin="0,0,10,0"
-                                   Visibility="{DynamicResource Theme.HasAppIcon}"
-                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <!-- Icon group: ShowTitleBarIcon=false hides all variants -->
+                            <StackPanel Orientation="Horizontal"
+                                        Visibility="{DynamicResource Theme.ShowTitleBarIcon}">
 
-                            <!-- Custom logo (theme override, no appIcon set) -->
-                            <Image x:Name="TitleLogo"
-                                   Source="{DynamicResource Theme.Logo}"
-                                   Width="{DynamicResource Theme.LogoWidth}"
-                                   Height="{DynamicResource Theme.LogoHeight}"
-                                   Visibility="{DynamicResource Theme.HasLogo}"
-                                   Margin="0,0,10,0"
-                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <!-- Custom app icon in title bar -->
+                                <Image Source="{DynamicResource Theme.AppIcon}"
+                                       Width="22" Height="22" Margin="0,0,10,0"
+                                       Visibility="{DynamicResource Theme.HasAppIcon}"
+                                       RenderOptions.BitmapScalingMode="HighQuality"/>
 
-                            <!-- Built-in shield icon (default, no logo) -->
-                            <Viewbox Width="22" Height="24" Margin="0,0,10,0" Stretch="Uniform"
-                                     Visibility="{DynamicResource Theme.HasBuiltinIcon}">
-                                <Canvas Width="24" Height="24">
-                                    <Path Fill="{DynamicResource CardBg}" Stroke="{DynamicResource BorderColor}" StrokeThickness="1.2">
-                                        <Path.Data>M12,1 L22,5 L22,13 C22,18.5 17.5,22.5 12,24 C6.5,22.5 2,18.5 2,13 L2,5 Z</Path.Data>
-                                    </Path>
-                                    <Polyline Points="7,9 12,15 17,9"
-                                              Stroke="{DynamicResource Accent}" StrokeThickness="2.2"
-                                              StrokeLineJoin="Round"
-                                              StrokeStartLineCap="Round"
-                                              StrokeEndLineCap="Round"
-                                              Fill="Transparent"/>
-                                </Canvas>
-                            </Viewbox>
+                                <!-- Custom logo (theme override, no appIcon set) -->
+                                <Image x:Name="TitleLogo"
+                                       Source="{DynamicResource Theme.Logo}"
+                                       Width="{DynamicResource Theme.LogoWidth}"
+                                       Height="{DynamicResource Theme.LogoHeight}"
+                                       Visibility="{DynamicResource Theme.HasLogo}"
+                                       Margin="0,0,10,0"
+                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                                <!-- Built-in shield icon (default, no logo) -->
+                                <Viewbox Width="22" Height="24" Margin="0,0,10,0" Stretch="Uniform"
+                                         Visibility="{DynamicResource Theme.HasBuiltinIcon}">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Fill="{DynamicResource CardBg}" Stroke="{DynamicResource BorderColor}" StrokeThickness="1.2">
+                                            <Path.Data>M12,1 L22,5 L22,13 C22,18.5 17.5,22.5 12,24 C6.5,22.5 2,18.5 2,13 L2,5 Z</Path.Data>
+                                        </Path>
+                                        <Polyline Points="7,9 12,15 17,9"
+                                                  Stroke="{DynamicResource Accent}" StrokeThickness="2.2"
+                                                  StrokeLineJoin="Round"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round"
+                                                  Fill="Transparent"/>
+                                    </Canvas>
+                                </Viewbox>
+                            </StackPanel>
 
                             <!-- App name from theme -->
                             <TextBlock Text="{DynamicResource Theme.AppName}"
                                        FontFamily="{DynamicResource Theme.FontFamily}"
                                        FontSize="14" FontWeight="Bold"
                                        Foreground="{DynamicResource Accent}"
-                                       VerticalAlignment="Center"/>
+                                       VerticalAlignment="Center"
+                                       Visibility="{DynamicResource Theme.ShowTitleBarAppName}"/>
+
                         </StackPanel>
 
                         <!-- Window controls: theme toggle + settings cog + close -->
@@ -103,7 +111,8 @@
                 </Border>
 
                 <!-- ── Status bar ─────────────────────────────────────────── -->
-                <Border Grid.Row="1" Background="{DynamicResource Surface}">
+                <Border Grid.Row="1" Background="{DynamicResource Surface}"
+                        Visibility="{DynamicResource Theme.ShowStatusBar}">
                     <Grid Margin="16,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -117,22 +126,26 @@
 
                         <TextBlock Grid.Column="0"
                                    Text="{Binding [StatusWifi], Source={x:Static local:Lang.Instance}}"
-                                   Foreground="{DynamicResource TextMuted}" FontSize="11" VerticalAlignment="Center"/>
+                                   Foreground="{DynamicResource TextMuted}" FontSize="11" VerticalAlignment="Center"
+                                   Visibility="{DynamicResource Theme.ShowStatusWifi}"/>
                         <TextBlock Grid.Column="1" x:Name="WifiLabel"
                                    Text="{Binding [StatusScanning], Source={x:Static local:Lang.Instance}}"
                                    FontSize="11" FontWeight="Bold" Margin="6,0,0,0"
-                                   VerticalAlignment="Center"/>
+                                   VerticalAlignment="Center"
+                                   Visibility="{DynamicResource Theme.ShowStatusWifi}"/>
 
                         <Rectangle Grid.Column="2" Width="1" Height="14" Margin="16,0"
                                    Fill="{DynamicResource BorderColor}" VerticalAlignment="Center"/>
 
                         <TextBlock Grid.Column="3"
                                    Text="{Binding [StatusActiveTunnel], Source={x:Static local:Lang.Instance}}"
-                                   Foreground="{DynamicResource TextMuted}" FontSize="11" VerticalAlignment="Center"/>
+                                   Foreground="{DynamicResource TextMuted}" FontSize="11" VerticalAlignment="Center"
+                                   Visibility="{DynamicResource Theme.ShowStatusTunnel}"/>
                         <TextBlock Grid.Column="4" x:Name="TunnelLabel"
                                    Text="{Binding [StatusNone], Source={x:Static local:Lang.Instance}}"
                                    FontSize="11" FontWeight="Bold" Margin="6,0,0,0"
-                                   Foreground="{DynamicResource Success}" VerticalAlignment="Center"/>
+                                   Foreground="{DynamicResource Success}" VerticalAlignment="Center"
+                                   Visibility="{DynamicResource Theme.ShowStatusTunnel}"/>
 
                         <!-- Action buttons — right-aligned in column 6 -->
                         <StackPanel Grid.Column="6" Orientation="Horizontal"
@@ -222,57 +235,13 @@
                             </Border>
                         </Grid>
 
-                        <ListView Grid.Row="1" x:Name="TunnelsListView"
-                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                  SelectionChanged="TunnelsListView_SelectionChanged">
-                            <ListView.View>
-                                <GridView>
-                                    <GridViewColumn Header="{Binding [TunnelColName], Source={x:Static local:Lang.Instance}}"
-                                                    Width="160">
-                                        <GridViewColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding Name}"
-                                                           Foreground="{Binding NameColor}"
-                                                           TextDecorations="{Binding NameDecoration}"
-                                                           FontSize="11"
-                                                           ToolTip="{Binding ButtonTooltip}"/>
-                                            </DataTemplate>
-                                        </GridViewColumn.CellTemplate>
-                                    </GridViewColumn>
-                                    <GridViewColumn Header="{Binding [TunnelColType], Source={x:Static local:Lang.Instance}}"
-                                                    Width="70">
-                                        <GridViewColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding TypeLabel}"
-                                                           Foreground="{Binding TypeColor}"
-                                                           FontSize="10"/>
-                                            </DataTemplate>
-                                        </GridViewColumn.CellTemplate>
-                                    </GridViewColumn>
-                                    <GridViewColumn Header="{Binding [TunnelColStatus], Source={x:Static local:Lang.Instance}}"
-                                                    Width="90">
-                                        <GridViewColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding StatusText}"
-                                                           Foreground="{Binding StatusColor}" FontSize="11"/>
-                                            </DataTemplate>
-                                        </GridViewColumn.CellTemplate>
-                                    </GridViewColumn>
-                                    <GridViewColumn Header="{Binding [TunnelColAction], Source={x:Static local:Lang.Instance}}" Width="95">
-                                        <GridViewColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <Button Content="{Binding ButtonLabel}"
-                                                        IsEnabled="{Binding ButtonEnabled}"
-                                                        ToolTip="{Binding ButtonTooltip}"
-                                                        Click="TunnelToggle_Click"
-                                                        Padding="10,3" FontSize="10"
-                                                        Style="{StaticResource FlatBtn}"/>
-                                            </DataTemplate>
-                                        </GridViewColumn.CellTemplate>
-                                    </GridViewColumn>
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
+                        <ScrollViewer Grid.Row="1"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl x:Name="TunnelGroupsPanel">
+                                <!-- Groups are built in code-behind by RebuildTunnelGroups() -->
+                            </ItemsControl>
+                        </ScrollViewer>
 
                         <!-- Tunnel management buttons -->
                         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,6,0,0">
@@ -459,7 +428,8 @@
                 </Border>
 
                 <ResizeGrip Grid.Row="5" HorizontalAlignment="Right"
-                            VerticalAlignment="Bottom" Margin="0,0,2,2" Opacity="0.4"/>
+                            VerticalAlignment="Bottom" Margin="0,0,2,2" Opacity="0.4"
+                            Visibility="{DynamicResource Theme.ShowResizeGrip}"/>
             </Grid>
         </Grid>
     </Border>

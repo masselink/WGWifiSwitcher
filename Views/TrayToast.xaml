@@ -39,7 +39,7 @@
             <Rectangle Height="1" Fill="{DynamicResource BorderColor}"/>
 
             <!-- Message body -->
-            <Border Padding="14,13">
+            <Border Background="{DynamicResource Surface}" Padding="14,13">
                 <TextBlock x:Name="MessageLabel"
                            FontFamily="{DynamicResource Theme.FontFamily}" FontSize="15"
                            Foreground="{DynamicResource TextPrimary}"

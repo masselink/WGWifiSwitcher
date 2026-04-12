@@ -166,6 +166,38 @@
                                 </Grid>
                             </Border>
 
+                            <!-- Tunnel groups -->
+                            <TextBlock Text="{Binding [SettingsSectionGroups], Source={x:Static local:Lang.Instance}}"
+                                       Style="{StaticResource SettingsSectionHeader}"/>
+                            <Border Style="{StaticResource SettingsCard}" Margin="0,0,0,4">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding [SettingsGroupsDesc], Source={x:Static local:Lang.Instance}}"
+                                               FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9"
+                                               Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"
+                                               Margin="0,0,0,8"/>
+                                    <!-- Group list -->
+                                    <ItemsControl x:Name="GroupListPanel"/>
+                                    <!-- Add new group row -->
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0" x:Name="NewGroupNameBox"
+                                                 FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11"
+                                                 Padding="8,5" Margin="0,0,6,0">
+                                            <TextBox.Resources>
+                                                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}"/>
+                                            </TextBox.Resources>
+                                        </TextBox>
+                                        <Button Grid.Column="1"
+                                                Content="{Binding [BtnAddGroup], Source={x:Static local:Lang.Instance}}"
+                                                Style="{StaticResource SuccessBtn}" FontSize="10" Padding="10,5"
+                                                Click="AddGroup_Click"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
                         </StackPanel>
 
                         <!-- ══ APPEARANCE PAGE ══════════════════════════════ -->

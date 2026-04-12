@@ -37,9 +37,6 @@ namespace MasselGUARD.Views
                 }
             }
 
-            // ── Theme picker ─────────────────────────────────────────────────
-            PopulateThemePicker();
-
             // ── App mode radio buttons ────────────────────────────────────────
             ApplyModeToRadios(_main.GetConfig().Mode);
 
@@ -345,12 +342,12 @@ namespace MasselGUARD.Views
         private void TabBtn_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not System.Windows.Controls.Button btn) return;
-            // Map button Name → tab name (Tag is used for active-highlight styling)
             string tab = btn.Name switch
             {
-                "TabBtnAdvanced" => "Advanced",
-                "TabBtnAbout"    => "About",
-                _                => "General",
+                "TabBtnAppearance" => "Appearance",
+                "TabBtnAdvanced"   => "Advanced",
+                "TabBtnAbout"      => "About",
+                _                  => "General",
             };
             ShowTab(tab);
         }
@@ -373,6 +370,7 @@ namespace MasselGUARD.Views
             if (tab == "Advanced")   { RefreshInstallState(); RefreshDllStatus(); RefreshWireGuardSection(); ScanOrphans(); }
             if (tab == "About")      { RefreshUpdateState(); }
             if (tab == "Appearance") { PopulateThemePicker(); }
+            if (tab == "General")    { RefreshGroupList(); }
         }
 
         // ── Wizard ───────────────────────────────────────────────────────────
@@ -514,21 +512,143 @@ namespace MasselGUARD.Views
 
         private void CloseBtn_Click(object sender, RoutedEventArgs e) => Close();
 
+        // ── Tunnel group manager ──────────────────────────────────────────────
+        private void RefreshGroupList()
+        {
+            GroupListPanel.Items.Clear();
+            var groups = _main.GetConfig().TunnelGroups;
+            for (int i = 0; i < groups.Count; i++)
+            {
+                int idx = i;
+                var group = groups[i];
+
+                var nameBox = new System.Windows.Controls.TextBox
+                {
+                    Text       = group.Name,
+                    FontFamily = (System.Windows.Media.FontFamily)FindResource("Theme.FontFamily"),
+                    FontSize   = 11,
+                    Padding    = new Thickness(6, 3, 6, 3),
+                    MinWidth   = 120,
+                };
+                nameBox.LostFocus += (_, _) =>
+                {
+                    var newName = nameBox.Text.Trim();
+                    if (string.IsNullOrEmpty(newName) || newName == group.Name) return;
+                    // Also update any tunnels referencing the old group name
+                    foreach (var t in _main.GetConfig().Tunnels)
+                        if (string.Equals(t.Group, group.Name, StringComparison.OrdinalIgnoreCase))
+                            t.Group = newName;
+                    group.Name = newName;
+                    _main.SaveConfigPublic();
+                    _main.RefreshTunnelDropdownsPublic();
+                };
+
+                var upBtn = new System.Windows.Controls.Button
+                {
+                    Content  = "↑", FontSize = 10, Padding = new Thickness(6, 2, 6, 2),
+                    Margin   = new Thickness(4, 0, 0, 0),
+                    IsEnabled = idx > 0,
+                    Style    = (Style)FindResource("FlatBtn"),
+                };
+                upBtn.Click += (_, _) =>
+                {
+                    if (idx <= 0) return;
+                    groups.RemoveAt(idx);
+                    groups.Insert(idx - 1, group);
+                    _main.SaveConfigPublic();
+                    _main.RefreshTunnelDropdownsPublic();
+                    RefreshGroupList();
+                };
+
+                var downBtn = new System.Windows.Controls.Button
+                {
+                    Content  = "↓", FontSize = 10, Padding = new Thickness(6, 2, 6, 2),
+                    Margin   = new Thickness(2, 0, 0, 0),
+                    IsEnabled = idx < groups.Count - 1,
+                    Style    = (Style)FindResource("FlatBtn"),
+                };
+                downBtn.Click += (_, _) =>
+                {
+                    if (idx >= groups.Count - 1) return;
+                    groups.RemoveAt(idx);
+                    groups.Insert(idx + 1, group);
+                    _main.SaveConfigPublic();
+                    _main.RefreshTunnelDropdownsPublic();
+                    RefreshGroupList();
+                };
+
+                var delBtn = new System.Windows.Controls.Button
+                {
+                    Content  = "✕", FontSize = 10, Padding = new Thickness(6, 2, 6, 2),
+                    Margin   = new Thickness(2, 0, 0, 0),
+                    Style    = (Style)FindResource("DangerBtn"),
+                };
+                delBtn.Click += (_, _) =>
+                {
+                    // Move tunnels in this group to ungrouped
+                    foreach (var t in _main.GetConfig().Tunnels)
+                        if (string.Equals(t.Group, group.Name, StringComparison.OrdinalIgnoreCase))
+                            t.Group = "";
+                    groups.Remove(group);
+                    _main.SaveConfigPublic();
+                    _main.RefreshTunnelDropdownsPublic();
+                    RefreshGroupList();
+                };
+
+                var row = new System.Windows.Controls.StackPanel
+                {
+                    Orientation = System.Windows.Controls.Orientation.Horizontal,
+                    Margin      = new Thickness(0, 0, 0, 4),
+                };
+                row.Children.Add(nameBox);
+                row.Children.Add(upBtn);
+                row.Children.Add(downBtn);
+                row.Children.Add(delBtn);
+                GroupListPanel.Items.Add(row);
+            }
+        }
+
+        private void AddGroup_Click(object sender, RoutedEventArgs e)
+        {
+            var name = NewGroupNameBox.Text.Trim();
+            if (string.IsNullOrEmpty(name)) return;
+            var groups = _main.GetConfig().TunnelGroups;
+            if (groups.Any(g => string.Equals(g.Name, name, StringComparison.OrdinalIgnoreCase)))
+                return; // duplicate
+            groups.Add(new TunnelGroup(name));
+            NewGroupNameBox.Text = "";
+            _main.SaveConfigPublic();
+            _main.RefreshTunnelDropdownsPublic();
+            RefreshGroupList();
+        }
+
         // ── Theme section ─────────────────────────────────────────────────────
         private void PopulateThemePicker()
         {
             _themeSwitching = true;
-            var themes = ThemeManager.AvailableThemes();
+            var allThemes = ThemeManager.AvailableThemes();
 
             // Show/hide section
             if (ThemePickerCard != null)
-                ThemePickerCard.Visibility = themes.Count > 0
+                ThemePickerCard.Visibility = allThemes.Count > 0
                     ? System.Windows.Visibility.Visible
                     : System.Windows.Visibility.Collapsed;
 
-            // Populate both pickers with all available themes
-            PopulatePicker(DarkThemePicker,  themes, _main.GetConfig().ActiveDarkTheme);
-            PopulatePicker(LightThemePicker, themes, _main.GetConfig().ActiveLightTheme);
+            // Populate pickers filtered by theme type
+            var darkThemes  = allThemes.Where(f =>
+            {
+                var m = ThemeManager.GetThemeMetadata(f);
+                return m == null || m.Type.Equals("dark", StringComparison.OrdinalIgnoreCase);
+            }).ToList();
+
+            var lightThemes = allThemes.Where(f =>
+            {
+                var m = ThemeManager.GetThemeMetadata(f);
+                return m != null && m.Type.Equals("light", StringComparison.OrdinalIgnoreCase);
+            }).ToList();
+
+            PopulatePicker(DarkThemePicker,  darkThemes,  _main.GetConfig().ActiveDarkTheme);
+            PopulatePicker(LightThemePicker, lightThemes, _main.GetConfig().ActiveLightTheme);
 
             // Auto-switch toggle
             AutoThemeToggle.IsChecked = _main.GetConfig().AutoTheme;

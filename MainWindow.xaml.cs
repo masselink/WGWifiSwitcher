@@ -28,11 +28,34 @@ namespace MasselGUARD
     {
         private string _ssid   = "";
         private string _tunnel = "";
+        private string _networkType = "wifi";
+        private string _adapterFilter = "";
 
         public string Ssid   { get => _ssid;   set { _ssid   = value; OnProp(); } }
         public string Tunnel { get => _tunnel; set { _tunnel = value; OnProp(); OnProp(nameof(TunnelDisplay)); } }
 
+        /// <summary>"wifi" | "ethernet" | "vpn" | "any"</summary>
+        public string NetworkType
+        {
+            get => _networkType;
+            set { _networkType = value; OnProp(); OnProp(nameof(NetworkTypeDisplay)); }
+        }
+
+        /// <summary>Optional partial adapter name filter (case-insensitive). Empty = match any adapter of NetworkType.</summary>
+        public string AdapterFilter
+        {
+            get => _adapterFilter;
+            set { _adapterFilter = value; OnProp(); }
+        }
+
         [JsonIgnore] public string TunnelDisplay => string.IsNullOrEmpty(_tunnel) ? "\u2014 disconnect" : _tunnel;
+        [JsonIgnore] public string NetworkTypeDisplay => _networkType switch
+        {
+            "ethernet" => "Ethernet",
+            "vpn"      => "VPN",
+            "any"      => "Any",
+            _          => "WiFi",
+        };
         [JsonIgnore] public string StatusText { get; set; } = "\u2014";
         [JsonIgnore] public SolidColorBrush StatusColor =>
             StatusText == "\u25cf active"
@@ -54,6 +77,8 @@ namespace MasselGUARD
 
         public string     Name   { get; set; } = "";
         public TunnelType Type   { get; set; } = TunnelType.Local;
+        /// <summary>Group this tunnel belongs to. Empty string = ungrouped.</summary>
+        public string     Group  { get; set; } = "";
 
         public bool Active
         {
@@ -123,15 +148,45 @@ namespace MasselGUARD
         public class StoredTunnel
     {
         public string  Name   { get; set; } = "";
-        public string  Config { get; set; } = "";  // raw .conf text — used for locally created tunnels
-        public string  Source { get; set; } = "local"; // "local" or "wireguard"
-        public string? Path   { get; set; } = null;    // original file path — used for wireguard tunnels
+        public string  Config { get; set; } = "";
+        public string  Source { get; set; } = "local";
+        public string? Path   { get; set; } = null;
+        /// <summary>Group this tunnel belongs to. Empty = Ungrouped.</summary>
+        public string  Group  { get; set; } = "";
+
+        public bool   KillSwitch           { get; set; } = false;
+        public int    RetryCount           { get; set; } = 0;
+        public int    RetryDelaySec        { get; set; } = 5;
+        public string PreConnectScript     { get; set; } = "";
+        public string PostConnectScript    { get; set; } = "";
+        public string PreDisconnectScript  { get; set; } = "";
+        public string PostDisconnectScript { get; set; } = "";
+    }
+
+    /// <summary>A named group that organises tunnels into collapsible sections.</summary>
+    public class TunnelGroup
+    {
+        public string Name        { get; set; } = "";
+        /// <summary>Whether the group is expanded in the tunnel list. Persisted.</summary>
+        public bool   IsExpanded  { get; set; } = true;
+        /// <summary>Optional accent colour override for this group header. Empty = use theme accent.</summary>
+        public string Color       { get; set; } = "";
+
+        public TunnelGroup() { }
+        public TunnelGroup(string name) { Name = name; }
     }
 
     public class AppConfig
     {
         public List<TunnelRule>   Rules              { get; set; } = new();
         public List<StoredTunnel> Tunnels            { get; set; } = new();
+        /// <summary>User-defined tunnel groups. Order is preserved in the UI.</summary>
+        public List<TunnelGroup>  TunnelGroups       { get; set; } = new()
+        {
+            new TunnelGroup("Work"),
+            new TunnelGroup("Personal"),
+            new TunnelGroup("Travel"),
+        };
         public string             DefaultAction      { get; set; } = "none";
         public string             DefaultTunnel      { get; set; } = "";
         public string             InstallDirectory   { get; set; } = @"C:\Program Files\WireGuard";
@@ -315,6 +370,7 @@ namespace MasselGUARD
         private readonly ObservableCollection<TunnelRule>  _rules   = new();
         private readonly ObservableCollection<TunnelEntry> _tunnels = new();
         private string? _lastWifi;
+        private TunnelEntry? _selectedTunnel;      // tracks selection across grouped panel
         private readonly DispatcherTimer _timer = new();
         private Ringlogger?              _ringlogger;
         private string                   _ringloggerTunnel = "";
@@ -512,7 +568,6 @@ namespace MasselGUARD
         {
             InitializeComponent();
             RulesListView.ItemsSource  = _rules;
-            TunnelsListView.ItemsSource = _tunnels;
 
             System.Windows.Application.Current.DispatcherUnhandledException += (s, e) =>
             {
@@ -1608,7 +1663,7 @@ namespace MasselGUARD
         // ── Tunnel CRUD ───────────────────────────────────────────────────────
 
         private void SaveTunnelConfig(string name, string config,
-            string source = "local", string? filePath = null)
+            string source = "local", string? filePath = null, string group = "")
         {
             if (source == "local")
             {
@@ -1631,14 +1686,15 @@ namespace MasselGUARD
                 string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
             if (existing != null)
             {
-                existing.Config = config;
-                existing.Source = source;
-                existing.Path   = filePath;
+                existing.Config  = config;
+                existing.Source  = source;
+                existing.Path    = filePath;
+                existing.Group   = group;
             }
             else
             {
                 _cfg.Tunnels.Add(new StoredTunnel
-                    { Name = name, Config = config, Source = source, Path = filePath });
+                    { Name = name, Config = config, Source = source, Path = filePath, Group = group });
             }
             SaveConfig();
         }
@@ -1681,7 +1737,7 @@ namespace MasselGUARD
         private void TunnelsListView_SelectionChanged(object sender,
             System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            var entry    = TunnelsListView.SelectedItem as TunnelEntry;
+            var entry    = _selectedTunnel;
             bool sel     = entry != null;
             bool isLocal = entry?.Type == TunnelType.Local;
             bool isWg    = entry?.Type == TunnelType.WireGuard;
@@ -1722,23 +1778,26 @@ namespace MasselGUARD
         {
             var dlg = new Views.TunnelConfigDialog { Owner = this };
             if (dlg.ShowDialog() != true) return;
-            SaveTunnelConfig(dlg.ResultName!, dlg.ResultConfig!);
+            SaveTunnelConfig(dlg.ResultName!, dlg.ResultConfig!, group: dlg.ResultGroup);
             Log("TunnelSavedLog", LogLevel.Ok, dlg.ResultName!);
             RefreshTunnelDropdowns();
         }
 
         private void EditTunnel_Click(object sender, RoutedEventArgs e)
         {
-            if (TunnelsListView.SelectedItem is not TunnelEntry entry) return;
-            var config = LoadTunnelConfig(entry.Name);
-            var dlg    = new Views.TunnelConfigDialog(entry.Name, config) { Owner = this };
+            if (_selectedTunnel is not TunnelEntry entry) return;
+            var config       = LoadTunnelConfig(entry.Name);
+            var existingGroup = _cfg.Tunnels
+                .FirstOrDefault(t => string.Equals(t.Name, entry.Name, StringComparison.OrdinalIgnoreCase))
+                ?.Group ?? "";
+            var dlg = new Views.TunnelConfigDialog(entry.Name, config, existingGroup) { Owner = this };
             if (dlg.ShowDialog() != true) return;
 
             // If name changed, delete old file
             if (!string.Equals(dlg.ResultName, entry.Name, StringComparison.OrdinalIgnoreCase))
                 DeleteTunnelConfig(entry.Name);
 
-            SaveTunnelConfig(dlg.ResultName!, dlg.ResultConfig!);
+            SaveTunnelConfig(dlg.ResultName!, dlg.ResultConfig!, group: dlg.ResultGroup);
             Log("TunnelSavedLog", LogLevel.Ok, dlg.ResultName!);
             RefreshTunnelDropdowns();
         }
@@ -1816,7 +1875,7 @@ namespace MasselGUARD
 
         private void DeleteTunnel_Click(object sender, RoutedEventArgs e)
         {
-            if (TunnelsListView.SelectedItem is not TunnelEntry entry) return;
+            if (_selectedTunnel is not TunnelEntry entry) return;
 
             if (entry.Type == TunnelType.WireGuard)
             {
@@ -1891,7 +1950,8 @@ namespace MasselGUARD
                     Name               = t,
                     Active             = active.Contains(t),
                     Type               = isLocal ? TunnelType.Local : TunnelType.WireGuard,
-                    WireGuardInstalled = wgInstalled
+                    WireGuardInstalled = wgInstalled,
+                    Group              = stored?.Group ?? ""
                 });
             }
 
@@ -1923,6 +1983,8 @@ namespace MasselGUARD
         {
             TunnelCountLabel.Text = _tunnels.Count.ToString();
             RuleCountLabel.Text   = _rules.Count.ToString();
+
+            RebuildTunnelGroups();
         }
 
         // Called from UpdateStatusDisplay to refresh live Active flags without rebuilding
@@ -1941,6 +2003,252 @@ namespace MasselGUARD
 
             ((App)System.Windows.Application.Current).RebuildTrayTunnelMenu(
                 _tunnels.Select(t => t.Name).ToList(), active);
+
+            RebuildTunnelGroups();
+        }
+
+        // ── Grouped tunnel panel ──────────────────────────────────────────────
+        // Builds collapsible group sections inside TunnelGroupsPanel.
+        // Each section has a header row (▶/▼ + name + count) and a body
+        // containing one tunnel row per TunnelEntry in that group.
+        private void RebuildTunnelGroups()
+        {
+            _tunnelRowBorders.Clear();
+            _selectedTunnel = null;
+            TunnelGroupsPanel.Items.Clear();
+
+            // Build a dictionary: groupName → tunnels in that group
+            // Tunnels not in any configured group go to "Ungrouped"
+            var configuredNames = _cfg.TunnelGroups.Select(g => g.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var buckets = new Dictionary<string, List<TunnelEntry>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var g in _cfg.TunnelGroups)
+                buckets[g.Name] = new List<TunnelEntry>();
+            buckets[""] = new List<TunnelEntry>(); // ungrouped
+
+            foreach (var t in _tunnels)
+            {
+                var key = !string.IsNullOrEmpty(t.Group) && configuredNames.Contains(t.Group)
+                    ? t.Group : "";
+                buckets[key].Add(t);
+            }
+
+            // Render each configured group (skip empty ones)
+            foreach (var group in _cfg.TunnelGroups)
+            {
+                if (!buckets.TryGetValue(group.Name, out var entries) || entries.Count == 0)
+                    continue;
+                TunnelGroupsPanel.Items.Add(BuildGroupSection(group, entries));
+            }
+
+            // Render ungrouped tunnels (no header if it's the only bucket with content)
+            var ungrouped = buckets[""];
+            if (ungrouped.Count > 0)
+            {
+                bool hasNamedGroups = _cfg.TunnelGroups
+                    .Any(g => buckets.TryGetValue(g.Name, out var b) && b.Count > 0);
+
+                if (hasNamedGroups)
+                {
+                    // Show a faded "Ungrouped" header
+                    var fakeGroup = new TunnelGroup(Lang.T("TunnelGroupUngrouped"))
+                        { IsExpanded = true, Color = "" };
+                    TunnelGroupsPanel.Items.Add(BuildGroupSection(fakeGroup, ungrouped));
+                }
+                else
+                {
+                    // All tunnels are ungrouped — just show rows without a header
+                    foreach (var entry in ungrouped)
+                        TunnelGroupsPanel.Items.Add(BuildTunnelRow(entry));
+                }
+            }
+        }
+
+        private System.Windows.UIElement BuildGroupSection(TunnelGroup group, List<TunnelEntry> entries)
+        {
+            // Accent colour: use group.Color if set, else theme Accent brush
+            var accentBrush = string.IsNullOrEmpty(group.Color)
+                ? (System.Windows.Media.Brush)FindResource("Accent")
+                : new System.Windows.Media.SolidColorBrush(
+                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter
+                        .ConvertFromString(group.Color));
+
+            // Collapse body panel
+            var bodyPanel = new System.Windows.Controls.StackPanel();
+            bodyPanel.Visibility = group.IsExpanded ? Visibility.Visible : Visibility.Collapsed;
+            foreach (var entry in entries)
+                bodyPanel.Children.Add(BuildTunnelRow(entry));
+
+            // Header
+            var chevron = new System.Windows.Controls.TextBlock
+            {
+                Text       = group.IsExpanded ? "▾" : "▸",
+                FontSize   = 10,
+                Foreground = accentBrush,
+                Margin     = new Thickness(0, 0, 6, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+
+            var count = new System.Windows.Controls.Border
+            {
+                Background    = (System.Windows.Media.Brush)FindResource("BorderColor"),
+                CornerRadius  = (CornerRadius)FindResource("Theme.CornerRadius"),
+                Padding       = new Thickness(6, 1, 6, 1),
+                Margin        = new Thickness(6, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = new System.Windows.Controls.TextBlock
+                {
+                    Text       = entries.Count.ToString(),
+                    FontSize   = 9,
+                    Foreground = (System.Windows.Media.Brush)FindResource("TextMuted"),
+                }
+            };
+
+            var headerRow = new System.Windows.Controls.StackPanel
+            {
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
+                Cursor      = System.Windows.Input.Cursors.Hand,
+                Margin      = new Thickness(0, 6, 0, 2),
+            };
+            headerRow.Children.Add(chevron);
+            headerRow.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text       = group.Name,
+                FontSize   = 9,
+                FontWeight = FontWeights.Bold,
+                Foreground = (System.Windows.Media.Brush)FindResource("TextMuted"),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            headerRow.Children.Add(count);
+
+            // Toggle collapse on click
+            headerRow.MouseLeftButtonUp += (_, _) =>
+            {
+                group.IsExpanded = !group.IsExpanded;
+                chevron.Text      = group.IsExpanded ? "▾" : "▸";
+                bodyPanel.Visibility = group.IsExpanded ? Visibility.Visible : Visibility.Collapsed;
+                SaveConfig(); // persist collapsed state
+            };
+
+            var section = new System.Windows.Controls.StackPanel();
+            section.Children.Add(headerRow);
+            section.Children.Add(bodyPanel);
+            return section;
+        }
+
+        private System.Windows.UIElement BuildTunnelRow(TunnelEntry entry)
+        {
+            // Name column
+            var nameBlock = new System.Windows.Controls.TextBlock
+            {
+                FontSize   = 11,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            nameBlock.SetBinding(System.Windows.Controls.TextBlock.TextProperty,
+                new System.Windows.Data.Binding("Name") { Source = entry });
+            nameBlock.SetBinding(System.Windows.Controls.TextBlock.ForegroundProperty,
+                new System.Windows.Data.Binding("NameColor") { Source = entry });
+            nameBlock.SetBinding(System.Windows.Controls.TextBlock.TextDecorationsProperty,
+                new System.Windows.Data.Binding("NameDecoration") { Source = entry });
+            var nameCol = new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) };
+
+            // Type column
+            var typeBlock = new System.Windows.Controls.TextBlock
+            {
+                FontSize   = 10,
+                Margin     = new Thickness(6, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            typeBlock.SetBinding(System.Windows.Controls.TextBlock.TextProperty,
+                new System.Windows.Data.Binding("TypeLabel") { Source = entry });
+            typeBlock.SetBinding(System.Windows.Controls.TextBlock.ForegroundProperty,
+                new System.Windows.Data.Binding("TypeColor") { Source = entry });
+
+            // Status column
+            var statusBlock = new System.Windows.Controls.TextBlock
+            {
+                FontSize   = 11,
+                Margin     = new Thickness(6, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            statusBlock.SetBinding(System.Windows.Controls.TextBlock.TextProperty,
+                new System.Windows.Data.Binding("StatusText") { Source = entry });
+            statusBlock.SetBinding(System.Windows.Controls.TextBlock.ForegroundProperty,
+                new System.Windows.Data.Binding("StatusColor") { Source = entry });
+
+            // Action button
+            var btn = new System.Windows.Controls.Button
+            {
+                Padding = new Thickness(10, 3, 10, 3),
+                FontSize = 10,
+                Style   = (Style)FindResource("FlatBtn"),
+                Margin  = new Thickness(6, 0, 0, 0),
+            };
+            btn.SetBinding(System.Windows.Controls.Button.ContentProperty,
+                new System.Windows.Data.Binding("ButtonLabel") { Source = entry });
+            btn.SetBinding(System.Windows.Controls.Button.IsEnabledProperty,
+                new System.Windows.Data.Binding("ButtonEnabled") { Source = entry });
+            btn.SetBinding(System.Windows.Controls.Button.ToolTipProperty,
+                new System.Windows.Data.Binding("ButtonTooltip") { Source = entry });
+            btn.DataContext = entry;
+            btn.Click += TunnelToggle_Click;
+
+            // Row grid
+            var grid = new System.Windows.Controls.Grid { Margin = new Thickness(0, 1, 0, 1) };
+            grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(160) });
+            grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(70) });
+            grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = GridLength.Auto });
+
+            System.Windows.Controls.Grid.SetColumn(nameBlock,   0);
+            System.Windows.Controls.Grid.SetColumn(typeBlock,   1);
+            System.Windows.Controls.Grid.SetColumn(statusBlock, 2);
+            System.Windows.Controls.Grid.SetColumn(btn,         3);
+            grid.Children.Add(nameBlock);
+            grid.Children.Add(typeBlock);
+            grid.Children.Add(statusBlock);
+            grid.Children.Add(btn);
+
+            // Highlight + selection on click
+            var rowBorder = new System.Windows.Controls.Border
+            {
+                Padding     = new Thickness(4, 2, 4, 2),
+                Child       = grid,
+                Cursor      = System.Windows.Input.Cursors.Hand,
+                Background  = System.Windows.Media.Brushes.Transparent,
+            };
+            rowBorder.MouseLeftButtonDown += (_, _) => SelectTunnelEntry(entry, rowBorder);
+            rowBorder.MouseEnter += (_, _) =>
+            {
+                if (_selectedTunnel != entry)
+                    rowBorder.Background = (System.Windows.Media.Brush)FindResource("ListHover");
+            };
+            rowBorder.MouseLeave += (_, _) =>
+            {
+                if (_selectedTunnel != entry)
+                    rowBorder.Background = System.Windows.Media.Brushes.Transparent;
+            };
+
+            // Track border for selection highlight
+            _tunnelRowBorders[entry] = rowBorder;
+            return rowBorder;
+        }
+
+        // Selection tracking for the grouped panel
+        private readonly Dictionary<TunnelEntry, System.Windows.Controls.Border> _tunnelRowBorders = new();
+
+        private void SelectTunnelEntry(TunnelEntry entry, System.Windows.Controls.Border? rowBorder = null)
+        {
+            // Clear previous selection highlight
+            if (_selectedTunnel != null && _tunnelRowBorders.TryGetValue(_selectedTunnel, out var prev))
+                prev.Background = System.Windows.Media.Brushes.Transparent;
+
+            _selectedTunnel = entry;
+            if (rowBorder != null)
+                rowBorder.Background = (System.Windows.Media.Brush)FindResource("ListSelected");
+
+            // Refresh toolbar buttons
+            TunnelsListView_SelectionChanged(this, null!);
         }
 
         // Keeps a synthetic TunnelEntry for the active Quick Connect session
@@ -3525,6 +3833,8 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
 
         // Public wrappers used by SettingsWindow
         public void LogDebugPublic(string key, params object[] args) => LogDebug(key, args);
+        public void SaveConfigPublic()              => SaveConfig();
+        public void RefreshTunnelDropdownsPublic()  => RefreshTunnelDropdowns();
         public void OpenWireGuardGui()  => OpenWireGuardGui_Click(this, new RoutedEventArgs());
         public void OpenWireGuardLog()  => ShowWireGuardLog_Click(this, new RoutedEventArgs());
         public void ApplyLocalTunnelModePublic() => ApplyLocalTunnelMode();

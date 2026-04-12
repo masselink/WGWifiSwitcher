@@ -657,15 +657,32 @@
         <CornerRadius x:Key="Theme.CornerRadiusBottom">0,0,6,6</CornerRadius>
         <!-- App name -->
         <sys:String  x:Key="Theme.AppName">MasselGUARD</sys:String>
-        <!-- Background image — seed must be a Brush so Border.Background cast works -->
+        <!-- Background image -->
         <SolidColorBrush x:Key="Theme.BackgroundBrush" Color="Transparent"/>
         <Visibility  x:Key="Theme.HasBackground">Collapsed</Visibility>
-        <!-- Logo / app icon — Image.Source handles null gracefully -->
+        <!-- Logo / app icon -->
         <Visibility  x:Key="Theme.HasLogo">Collapsed</Visibility>
         <Visibility  x:Key="Theme.HasBuiltinIcon">Visible</Visibility>
         <Visibility  x:Key="Theme.HasAppIcon">Collapsed</Visibility>
         <sys:Double  x:Key="Theme.LogoWidth">28</sys:Double>
         <sys:Double  x:Key="Theme.LogoHeight">28</sys:Double>
+        <!-- Window chrome -->
+        <GridLength  x:Key="Theme.TitleBarHeight">48</GridLength>
+        <Visibility  x:Key="Theme.ShowTitleBarIcon">Visible</Visibility>
+        <Visibility  x:Key="Theme.ShowTitleBarAppName">Visible</Visibility>
+        <Visibility  x:Key="Theme.ShowResizeGrip">Visible</Visibility>
+        <sys:Double  x:Key="Theme.WindowOpacity">1.0</sys:Double>
+        <!-- Status bar -->
+        <Visibility  x:Key="Theme.ShowStatusBar">Visible</Visibility>
+        <GridLength  x:Key="Theme.StatusBarHeight">38</GridLength>
+        <Visibility  x:Key="Theme.ShowStatusWifi">Visible</Visibility>
+        <Visibility  x:Key="Theme.ShowStatusTunnel">Visible</Visibility>
+        <!-- Tray menu brushes (WPF side — WinForms side uses Drawing.Color via code) -->
+        <SolidColorBrush x:Key="TrayBg"          Color="#161B22"/>
+        <SolidColorBrush x:Key="TrayHover"       Color="#21262D"/>
+        <SolidColorBrush x:Key="TrayText"        Color="#E6EDF3"/>
+        <SolidColorBrush x:Key="TrayBorder"      Color="#21262D"/>
+        <SolidColorBrush x:Key="TrayImageMargin" Color="#0E1117"/>
 
     </Application.Resources>
 </Application>
