@@ -274,6 +274,8 @@ namespace MasselGUARD
 
         private static void ApplyAppIcon(ResourceDictionary res, ThemeDefinition d, string folder)
         {
+            // appIcon = tray icon + Window.Icon (taskbar) only.
+            // The title bar uses 'logo' or the built-in shield — never appIcon.
             if (!string.IsNullOrWhiteSpace(d.AppIcon))
             {
                 var iconPath = Path.Combine(folder, d.AppIcon);
@@ -282,22 +284,16 @@ namespace MasselGUARD
                     try
                     {
                         var bmp = new BitmapImage(new Uri(iconPath, UriKind.Absolute));
-                        res["Theme.AppIcon"]        = bmp;
-                        res["Theme.HasAppIcon"]     = Visibility.Visible;
-                        res["Theme.HasBuiltinIcon"] = Visibility.Collapsed;
-
-                        // Build a WinForms Icon from the bitmap for the tray
+                        res["Theme.AppIcon"]  = bmp;
                         res["Theme.TrayIcon"] = BitmapToWinFormsIcon(bmp);
                         return;
                     }
-                    catch { /* fall through to builtin */ }
+                    catch { }
                 }
             }
 
-            res["Theme.AppIcon"]        = null;
-            res["Theme.HasAppIcon"]     = Visibility.Collapsed;
-            res["Theme.HasBuiltinIcon"] = Visibility.Visible;
-            res["Theme.TrayIcon"]       = null;
+            res["Theme.AppIcon"]  = null;
+            res["Theme.TrayIcon"] = null;
         }
 
         private static void ApplyLogo(ResourceDictionary res, ThemeDefinition d, string folder)
@@ -309,18 +305,20 @@ namespace MasselGUARD
                 {
                     try
                     {
-                        res["Theme.Logo"]       = new BitmapImage(new Uri(logoPath, UriKind.Absolute));
-                        res["Theme.LogoWidth"]  = (double)d.LogoWidth;
-                        res["Theme.LogoHeight"] = (double)d.LogoHeight;
-                        res["Theme.HasLogo"]    = Visibility.Visible;
+                        res["Theme.Logo"]           = new BitmapImage(new Uri(logoPath, UriKind.Absolute));
+                        res["Theme.LogoWidth"]      = (double)d.LogoWidth;
+                        res["Theme.LogoHeight"]     = (double)d.LogoHeight;
+                        res["Theme.HasLogo"]        = Visibility.Visible;
+                        res["Theme.HasBuiltinIcon"] = Visibility.Collapsed;  // logo replaces shield
                         return;
                     }
                     catch { /* fall through */ }
                 }
             }
 
-            res["Theme.Logo"]    = null;
-            res["Theme.HasLogo"] = Visibility.Collapsed;
+            res["Theme.Logo"]           = null;
+            res["Theme.HasLogo"]        = Visibility.Collapsed;
+            res["Theme.HasBuiltinIcon"] = Visibility.Visible;   // no logo → show shield
         }
 
         // ── System theme detection ────────────────────────────────────────────

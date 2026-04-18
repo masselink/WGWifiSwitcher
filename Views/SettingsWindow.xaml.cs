@@ -37,7 +37,7 @@ namespace MasselGUARD.Views
                 LanguagePicker.Items.Add(new LangItem(code, name));
             foreach (LangItem item in LanguagePicker.Items)
             {
-                if (item.Code == Lang.Instance.CurrentCode)
+                if (string.Equals(item.Code, Lang.Instance.CurrentCode, StringComparison.OrdinalIgnoreCase))
                 {
                     LanguagePicker.SelectedItem = item;
                     break;
@@ -218,9 +218,9 @@ namespace MasselGUARD.Views
             if (_loading) return;
             if (LanguagePicker.SelectedItem is LangItem item)
             {
-                _main.LogInfoPublic($"Language: {item.Display}");
-                Lang.Instance.Load(item.Code);
-                AppConfig.SaveLanguage(item.Code);
+                _main.LogInfoPublic($"Language: [{item.Code}] {item.Name}");
+                Lang.Instance.Load(item.Code.ToLowerInvariant());
+                AppConfig.SaveLanguage(item.Code.ToLowerInvariant());
             }
         }
 

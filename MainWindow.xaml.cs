@@ -131,6 +131,9 @@ namespace MasselGUARD
             OnProp(nameof(StatusText));
             OnProp(nameof(ButtonLabel));
             OnProp(nameof(TypeLabel));
+            OnProp(nameof(NameColor));
+            OnProp(nameof(TypeColor));
+            OnProp(nameof(StatusColor));
         }
 
         public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
@@ -4064,6 +4067,15 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
                 ThemeToggleBtn.Content = "☀";
             else
                 ThemeToggleBtn.Content = "🌙";
+
+            // Apply custom appIcon to Window.Icon (taskbar) when set
+            if (Application.Current.Resources["Theme.AppIcon"] is System.Windows.Media.Imaging.BitmapImage bmp)
+                Icon = bmp;
+            else
+                Icon = null;
+
+            // Refresh tunnel name/status colours — they read ThemeRes which changed
+            foreach (var t in _tunnels) t.RefreshLabels();
         }
 
         // Public wrappers used by SettingsWindow
@@ -4324,10 +4336,25 @@ Register-ScheduledTask -TaskName 'MasselGUARD' `
 
         public string Code  { get; }
         public string Name  { get; }
-        public string Flag  => Flags.TryGetValue(Code, out var f) ? f : "🌐";
-        public string Display => $"{Flag}  {Name}";
-        public LangItem(string code, string name) { Code = code; Name = name; }
-        public override string ToString() => Display;
+        public LangItem(string code, string name)
+        {
+            Code = code.ToUpperInvariant();
+            // Strip any leading emoji/flag characters and whitespace
+            // (_language in JSON files may contain e.g. "🇬🇧  English")
+            var trimmed = name.TrimStart();
+            int i = 0;
+            while (i < trimmed.Length)
+            {
+                var cat = char.GetUnicodeCategory(trimmed[i]);
+                // Skip regional indicator letters (flags) and spaces
+                if (trimmed[i] > 127 || trimmed[i] == ' ')
+                    i++;
+                else
+                    break;
+            }
+            Name = i > 0 && i < trimmed.Length ? trimmed[i..].TrimStart() : trimmed;
+        }
+        public override string ToString() => $"[{Code}] {Name}";
     }
 
     public class ThemePickerItem

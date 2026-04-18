@@ -1,7 +1,7 @@
 {
   "_language": "🇫🇷  Français",
   "_code": "fr",
-  "AppTitle": "MasselGUARD v2.3.0",
+  "AppTitle": "MasselGUARD v2.3.1",
   "StatusWifi": "WiFi :",
   "StatusActiveTunnel": "Tunnel actif :",
   "StatusScanning": "Recherche…",
@@ -290,6 +290,8 @@
   "SettingsSectionLog": "JOURNAL",
   "SettingsLogLevel": "Log level",
   "LogLevelNormal": "Normal",
+  "LogLevelInfo": "Info",
+  "LogLevelVerbose": "Détaillé",
   "LogLevelDebug": "Debug",
   "SettingsSectionWireGuard": "CLIENT WIREGUARD",
   "SettingsWireGuardDesc": "Open WireGuard GUI or view the WireGuard service log",

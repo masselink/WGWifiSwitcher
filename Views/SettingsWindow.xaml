@@ -91,8 +91,28 @@
                                                FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11" Foreground="{DynamicResource TextPrimary}"
                                                VerticalAlignment="Center"/>
                                     <ComboBox Grid.Column="1" x:Name="LanguagePicker"
-                                              MinWidth="160" FontSize="12" Padding="8,4"
-                                              SelectionChanged="LanguagePicker_SelectionChanged"/>
+                                              MinWidth="160" FontSize="11" Padding="6,4"
+                                              SelectionChanged="LanguagePicker_SelectionChanged">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Background="{DynamicResource Accent}"
+                                                            CornerRadius="2" Padding="4,1" Margin="0,0,7,0"
+                                                            VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Code}"
+                                                                   FontFamily="Consolas" FontSize="9"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="{DynamicResource WindowBg}"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Name}"
+                                                               FontFamily="{DynamicResource Theme.FontFamily}"
+                                                               FontSize="11"
+                                                               Foreground="{DynamicResource TextPrimary}"
+                                                               VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
                                 </Grid>
                             </Border>
 

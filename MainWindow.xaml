@@ -48,13 +48,7 @@
                             <StackPanel Orientation="Horizontal"
                                         Visibility="{DynamicResource Theme.ShowTitleBarIcon}">
 
-                                <!-- Custom app icon in title bar -->
-                                <Image Source="{DynamicResource Theme.AppIcon}"
-                                       Width="22" Height="22" Margin="0,0,10,0"
-                                       Visibility="{DynamicResource Theme.HasAppIcon}"
-                                       RenderOptions.BitmapScalingMode="HighQuality"/>
-
-                                <!-- Custom logo (theme override, no appIcon set) -->
+                                <!-- Custom logo (theme override) -->
                                 <Image x:Name="TitleLogo"
                                        Source="{DynamicResource Theme.Logo}"
                                        Width="{DynamicResource Theme.LogoWidth}"
@@ -63,7 +57,7 @@
                                        Margin="0,0,10,0"
                                        RenderOptions.BitmapScalingMode="HighQuality"/>
 
-                                <!-- Built-in shield icon (default, no logo) -->
+                                <!-- Built-in shield icon (shown when no logo set) -->
                                 <Viewbox Width="22" Height="24" Margin="0,0,10,0" Stretch="Uniform"
                                          Visibility="{DynamicResource Theme.HasBuiltinIcon}">
                                     <Canvas Width="24" Height="24">
@@ -371,7 +365,7 @@
                         </Border>
 
                         <!-- Tab content — fills remaining height -->
-                        <Grid Grid.Row="2" Margin="0,8,0,0">
+                        <Grid Grid.Row="2">
 
                             <!-- ── ACTIVITY LOG ─────────────────────────────── -->
                             <Border x:Name="RPageLog"
@@ -467,8 +461,8 @@
 
                         </Grid>
 
-                        <!-- Pinned bottom buttons — always same height as left panel -->
-                        <Border Grid.Row="3" Height="30" Margin="0,6,0,0">
+                        <!-- Pinned bottom buttons — same margin and height as left panel -->
+                        <Border Grid.Row="3" Margin="0,6,0,0" MinHeight="28">
                             <Grid>
                                 <!-- Rules buttons -->
                                 <StackPanel x:Name="RulesButtonBar"

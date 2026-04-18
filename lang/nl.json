@@ -1,7 +1,7 @@
 {
   "_language": "🇳🇱  Nederlands",
   "_code": "nl",
-  "AppTitle": "MasselGUARD v2.3.0",
+  "AppTitle": "MasselGUARD v2.3.1",
   "StatusWifi": "WiFi:",
   "StatusActiveTunnel": "Actieve tunnel:",
   "StatusScanning": "Scannen…",
@@ -290,6 +290,8 @@
   "SettingsSectionLog": "LOGBOEK",
   "SettingsLogLevel": "Logniveau",
   "LogLevelNormal": "Normaal",
+  "LogLevelInfo": "Info",
+  "LogLevelVerbose": "Uitgebreid",
   "LogLevelDebug": "Debug",
   "SettingsSectionWireGuard": "WIREGUARD CLIENT",
   "SettingsWireGuardDesc": "Open de WireGuard GUI of bekijk het WireGuard servicelogboek",

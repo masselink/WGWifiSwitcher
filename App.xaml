@@ -665,7 +665,6 @@
         <!-- Logo / app icon -->
         <Visibility  x:Key="Theme.HasLogo">Collapsed</Visibility>
         <Visibility  x:Key="Theme.HasBuiltinIcon">Visible</Visibility>
-        <Visibility  x:Key="Theme.HasAppIcon">Collapsed</Visibility>
         <sys:Double  x:Key="Theme.LogoWidth">28</sys:Double>
         <sys:Double  x:Key="Theme.LogoHeight">28</sys:Double>
         <!-- Window chrome -->
