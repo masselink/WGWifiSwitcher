@@ -1,0 +1,77 @@
+<Window x:Class="MasselGUARD.Views.LanRuleDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:MasselGUARD"
+        Title="LAN Rule"
+        Width="420" SizeToContent="Height"
+        WindowStyle="None" AllowsTransparency="True"
+        Background="Transparent" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner">
+    <Border Background="{DynamicResource WindowBg}"
+            BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
+            CornerRadius="{DynamicResource Theme.CornerRadius}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Title bar -->
+            <Border Grid.Row="0" Background="{DynamicResource Surface}"
+                    CornerRadius="{DynamicResource Theme.CornerRadiusTop}"
+                    MouseLeftButtonDown="TitleBar_MouseDown">
+                <TextBlock x:Name="DialogTitle" Margin="16,10"
+                           FontFamily="{DynamicResource Theme.FontFamily}" FontSize="13"
+                           FontWeight="Bold" Foreground="{DynamicResource Accent}"/>
+            </Border>
+
+            <!-- Content -->
+            <StackPanel Grid.Row="1" Margin="20,16,20,8">
+
+                <!-- Adapter filter -->
+                <TextBlock Text="{Binding [LanRuleFilterLabel], Source={x:Static local:Lang.Instance}}"
+                           FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11"
+                           Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
+                <TextBlock Text="{Binding [LanRuleFilterHint], Source={x:Static local:Lang.Instance}}"
+                           FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9"
+                           Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <TextBox x:Name="FilterBox"
+                         FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11"
+                         Padding="8,5" Margin="0,0,0,14"/>
+
+                <!-- Tunnel -->
+                <TextBlock Text="{Binding [LanRuleTunnelLabel], Source={x:Static local:Lang.Instance}}"
+                           FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11"
+                           Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
+                <TextBlock Text="{Binding [LanRuleTunnelHint], Source={x:Static local:Lang.Instance}}"
+                           FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9"
+                           Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <ComboBox x:Name="TunnelBox" IsEditable="True"
+                          FontFamily="{DynamicResource Theme.FontFamily}" FontSize="11"
+                          Padding="6,4" Margin="0,0,0,4"/>
+                <TextBlock Text="{Binding [LanRuleTunnelEmpty], Source={x:Static local:Lang.Instance}}"
+                           FontFamily="{DynamicResource Theme.FontFamily}" FontSize="9"
+                           Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+
+                <TextBlock x:Name="ErrorLabel" Foreground="{DynamicResource Danger}"
+                           FontFamily="{DynamicResource Theme.FontFamily}" FontSize="10"
+                           Visibility="Collapsed" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- Buttons -->
+            <Border Grid.Row="2" Background="{DynamicResource Surface}"
+                    CornerRadius="{DynamicResource Theme.CornerRadiusBottom}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                            VerticalAlignment="Center" Margin="0,0,16,0">
+                    <Button Content="{Binding [BtnCancel], Source={x:Static local:Lang.Instance}}"
+                            Style="{StaticResource FlatBtn}" Padding="20,6" Margin="0,0,8,0"
+                            Click="CancelBtn_Click"/>
+                    <Button Content="{Binding [BtnSaveTunnel], Source={x:Static local:Lang.Instance}}"
+                            Style="{StaticResource PrimaryBtn}" Padding="20,6"
+                            Click="SaveBtn_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

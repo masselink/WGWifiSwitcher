@@ -21,15 +21,11 @@ namespace MasselGUARD.Views
 
             // ── Log level ────────────────────────────────────────────────────
             LogLevelPicker.Items.Add(Lang.T("LogLevelNormal"));
-            LogLevelPicker.Items.Add(Lang.T("LogLevelInfo"));
-            LogLevelPicker.Items.Add(Lang.T("LogLevelVerbose"));
-            LogLevelPicker.Items.Add(Lang.T("LogLevelDebug"));
+            LogLevelPicker.Items.Add(Lang.T("LogLevelExtended"));
             LogLevelPicker.SelectedIndex = _main.GetConfig().LogLevelSetting switch
             {
-                "info"    => 1,
-                "verbose" => 2,
-                "debug"   => 3,
-                _         => 0,
+                "extended" => 1,
+                _          => 0,
             };
 
             // ── Language ─────────────────────────────────────────────────────
@@ -116,7 +112,10 @@ namespace MasselGUARD.Views
         // ── Manual (automation) mode ──────────────────────────────────────────
         private void ManualMode_Changed(object sender, RoutedEventArgs e)
         {
-            // Deferred — applied on Save
+            // Deferred — applied on Save; but update the UI immediately
+            bool manual = ManualModeToggle.IsChecked == true;
+            if (AutomationPanel != null)
+                AutomationPanel.IsEnabled = !manual;
         }
 
         // ── Log level ─────────────────────────────────────────────────────────
@@ -340,9 +339,7 @@ namespace MasselGUARD.Views
             // Log level
             var newLogLevel = LogLevelPicker.SelectedIndex switch
             {
-                1 => "info",
-                2 => "verbose",
-                3 => "debug",
+                1 => "extended",
                 _ => "normal",
             };
             if (cfg.LogLevelSetting != newLogLevel)
@@ -365,10 +362,13 @@ namespace MasselGUARD.Views
             if (sender is not System.Windows.Controls.Button btn) return;
             string tab = btn.Name switch
             {
-                "TabBtnAppearance" => "Appearance",
-                "TabBtnAdvanced"   => "Advanced",
-                "TabBtnAbout"      => "About",
-                _                  => "General",
+                "TabBtnAppearance"    => "Appearance",
+                "TabBtnRules"         => "Rules",
+                "TabBtnDefaultAction" => "DefaultAction",
+                "TabBtnOpenWifi"      => "OpenWifi",
+                "TabBtnAdvanced"      => "Advanced",
+                "TabBtnAbout"         => "About",
+                _                     => "General",
             };
             ShowTab(tab);
         }
@@ -376,22 +376,30 @@ namespace MasselGUARD.Views
         private void ShowTab(string tab)
         {
             _activeTab = tab;
-            PageGeneral.Visibility    = tab == "General"    ? Visibility.Visible : Visibility.Collapsed;
-            PageAppearance.Visibility = tab == "Appearance" ? Visibility.Visible : Visibility.Collapsed;
-            PageAdvanced.Visibility   = tab == "Advanced"   ? Visibility.Visible : Visibility.Collapsed;
-            PageAbout.Visibility      = tab == "About"      ? Visibility.Visible : Visibility.Collapsed;
+            PageGeneral.Visibility       = tab == "General"       ? Visibility.Visible : Visibility.Collapsed;
+            PageAppearance.Visibility    = tab == "Appearance"    ? Visibility.Visible : Visibility.Collapsed;
+            PageRules.Visibility         = tab == "Rules"         ? Visibility.Visible : Visibility.Collapsed;
+            PageDefaultAction.Visibility = tab == "DefaultAction" ? Visibility.Visible : Visibility.Collapsed;
+            PageOpenWifi.Visibility      = tab == "OpenWifi"      ? Visibility.Visible : Visibility.Collapsed;
+            PageAdvanced.Visibility      = tab == "Advanced"      ? Visibility.Visible : Visibility.Collapsed;
+            PageAbout.Visibility         = tab == "About"         ? Visibility.Visible : Visibility.Collapsed;
 
-            // Highlight the active sidebar button
-            TabBtnGeneral.Tag    = tab == "General"    ? "Active" : null;
-            TabBtnAppearance.Tag = tab == "Appearance" ? "Active" : null;
-            TabBtnAdvanced.Tag   = tab == "Advanced"   ? "Active" : null;
-            TabBtnAbout.Tag      = tab == "About"      ? "Active" : null;
+            // Highlight active sidebar button
+            TabBtnGeneral.Tag       = tab == "General"       ? "Active" : null;
+            TabBtnAppearance.Tag    = tab == "Appearance"    ? "Active" : null;
+            TabBtnRules.Tag         = tab == "Rules"         ? "Active" : null;
+            TabBtnDefaultAction.Tag = tab == "DefaultAction" ? "Active" : null;
+            TabBtnOpenWifi.Tag      = tab == "OpenWifi"      ? "Active" : null;
+            TabBtnAdvanced.Tag      = tab == "Advanced"      ? "Active" : null;
+            TabBtnAbout.Tag         = tab == "About"         ? "Active" : null;
 
-            // Refresh state for the tab we just switched to
-            if (tab == "Advanced")   { RefreshInstallState(); RefreshDllStatus(); RefreshWireGuardSection(); ScanOrphans(); }
-            if (tab == "About")      { RefreshUpdateState(); }
-            if (tab == "Appearance") { PopulateThemePicker(); }
-            if (tab == "General")    { RefreshGroupList(); }
+            if (tab == "Advanced")      { RefreshInstallState(); RefreshDllStatus(); RefreshWireGuardSection(); ScanOrphans(); }
+            if (tab == "About")         { RefreshUpdateState(); }
+            if (tab == "Appearance")    { PopulateThemePicker(); }
+            if (tab == "General")       { RefreshGroupList(); }
+            if (tab == "Rules")         { RefreshAutomationControls(); }
+            if (tab == "DefaultAction") { RefreshAutomationControls(); }
+            if (tab == "OpenWifi")      { RefreshAutomationControls(); }
         }
 
         // ── Wizard ───────────────────────────────────────────────────────────
@@ -809,5 +817,212 @@ namespace MasselGUARD.Views
 
         // kept for compatibility (old ThemePicker reference removed)
         private void UpdateThemeFolderLabel() { }
+
+        // ── Rules / Default Action / Open Network ─────────────────────────────
+        private void RefreshAutomationControls()
+        {
+            var cfg = _main.GetConfig();
+
+            // Disable automation content when manual mode is on
+            if (AutomationPanel != null)
+                AutomationPanel.IsEnabled = !cfg.ManualMode;
+            if (ManualModeToggle != null)
+                ManualModeToggle.IsChecked = cfg.ManualMode;
+
+            // Rules list
+            if (RulesListView != null)
+                RulesListView.ItemsSource = _main.GetRules();
+
+            // Default action radio buttons
+            _loading = true;
+            if (ActionNone     != null) ActionNone.IsChecked     = cfg.DefaultAction == "none"       || string.IsNullOrEmpty(cfg.DefaultAction);
+            if (ActionDiscon   != null) ActionDiscon.IsChecked   = cfg.DefaultAction == "disconnect";
+            if (ActionActivate != null) ActionActivate.IsChecked = cfg.DefaultAction == "activate";
+            _loading = false;
+
+            // Default tunnel combobox
+            var tunnels = _main.GetTunnelNames();
+            if (DefaultTunnelBox != null)
+            {
+                DefaultTunnelBox.Items.Clear();
+                foreach (var t in tunnels) DefaultTunnelBox.Items.Add(t);
+                DefaultTunnelBox.Text = cfg.DefaultTunnel ?? "";
+            }
+
+            // LAN action radio buttons
+            _loading = true;
+            if (LanActionNone     != null) LanActionNone.IsChecked     = cfg.LanAction == "none"       || string.IsNullOrEmpty(cfg.LanAction);
+            if (LanActionDiscon   != null) LanActionDiscon.IsChecked   = cfg.LanAction == "disconnect";
+            if (LanActionActivate != null) LanActionActivate.IsChecked = cfg.LanAction == "activate";
+            _loading = false;
+
+            // LAN tunnel combobox
+            if (LanTunnelBox != null)
+            {
+                LanTunnelBox.Items.Clear();
+                foreach (var t in tunnels) LanTunnelBox.Items.Add(t);
+                LanTunnelBox.Text = cfg.LanTunnel ?? "";
+            }
+
+            // LAN rules list
+            if (LanRulesListView != null)
+                LanRulesListView.ItemsSource = _main.GetLanRules();
+
+            // Open wifi combobox
+            _loading = true;
+            if (OpenWifiTunnelBox != null)
+            {
+                OpenWifiTunnelBox.Items.Clear();
+                OpenWifiTunnelBox.Items.Add(Lang.T("OpenWifiNone"));
+                foreach (var t in tunnels) OpenWifiTunnelBox.Items.Add(t);
+                var match = tunnels.FirstOrDefault(t =>
+                    string.Equals(t, cfg.OpenWifiTunnel, StringComparison.OrdinalIgnoreCase));
+                OpenWifiTunnelBox.SelectedItem = (object?)match ?? Lang.T("OpenWifiNone");
+            }
+            _loading = false;
+        }
+
+        private void LanRulesListView_SelectionChanged(object sender,
+            System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            bool sel = LanRulesListView?.SelectedItem != null;
+            if (EditLanBtn   != null) EditLanBtn.IsEnabled   = sel;
+            if (DeleteLanBtn != null) DeleteLanBtn.IsEnabled = sel;
+        }
+
+        private void AddLanRule_Click(object sender, RoutedEventArgs e)
+        {
+            _main.Dispatcher.Invoke(() => _main.AddLanRulePublic());
+            RefreshAutomationControls();
+        }
+
+        private void EditLanRule_Click(object sender, RoutedEventArgs e)
+        {
+            if (LanRulesListView?.SelectedItem is not TunnelRule rule) return;
+            _main.Dispatcher.Invoke(() => _main.EditLanRulePublic(rule));
+            RefreshAutomationControls();
+        }
+
+        private void DeleteLanRule_Click(object sender, RoutedEventArgs e)
+        {
+            if (LanRulesListView?.SelectedItem is not TunnelRule rule) return;
+            _main.Dispatcher.Invoke(() => _main.DeleteLanRulePublic(rule));
+            RefreshAutomationControls();
+        }
+
+        private void LanAction_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            var cfg = _main.GetConfig();
+            if      (LanActionNone.IsChecked   == true) cfg.LanAction = "none";
+            else if (LanActionDiscon.IsChecked == true) cfg.LanAction = "disconnect";
+            else                                        cfg.LanAction = "activate";
+            _main.SaveConfigPublic($"LAN action: {cfg.LanAction}");
+        }
+
+        private void LanTunnelBox_SelectionChanged(object sender,
+            System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_loading) return;
+            var cfg = _main.GetConfig();
+            if (LanTunnelBox.SelectedItem is string t)
+            {
+                cfg.LanTunnel    = t;
+                cfg.LanAction    = "activate";
+                LanActionActivate.IsChecked = true;
+                _main.SaveConfigPublic($"LAN tunnel: {t}");
+            }
+        }
+
+        private void LanTunnelBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            var cfg  = _main.GetConfig();
+            var text = LanTunnelBox.Text.Trim();
+            if (!string.IsNullOrEmpty(text) && text != cfg.LanTunnel)
+            {
+                cfg.LanTunnel    = text;
+                cfg.LanAction    = "activate";
+                LanActionActivate.IsChecked = true;
+                _main.SaveConfigPublic($"LAN tunnel: {text}");
+            }
+        }
+
+        private void DefaultAction_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            var cfg = _main.GetConfig();
+            if      (ActionNone.IsChecked   == true) cfg.DefaultAction = "none";
+            else if (ActionDiscon.IsChecked == true) cfg.DefaultAction = "disconnect";
+            else                                     cfg.DefaultAction = "activate";
+            _main.SaveConfigPublic($"Default action: {cfg.DefaultAction}");
+        }
+
+        private void DefaultTunnelBox_SelectionChanged(object sender,
+            System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_loading) return;
+            var cfg = _main.GetConfig();
+            if (DefaultTunnelBox.SelectedItem is string t)
+            {
+                cfg.DefaultTunnel    = t;
+                cfg.DefaultAction    = "activate";
+                ActionActivate.IsChecked = true;
+                _main.SaveConfigPublic($"Default tunnel: {t}");
+            }
+        }
+
+        private void DefaultTunnelBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            var cfg = _main.GetConfig();
+            var text = DefaultTunnelBox.Text.Trim();
+            if (!string.IsNullOrEmpty(text) && text != cfg.DefaultTunnel)
+            {
+                cfg.DefaultTunnel    = text;
+                cfg.DefaultAction    = "activate";
+                ActionActivate.IsChecked = true;
+                _main.SaveConfigPublic($"Default tunnel: {text}");
+            }
+        }
+
+        private void OpenWifiTunnel_Changed(object sender,
+            System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_loading) return;
+            var cfg  = _main.GetConfig();
+            var none = Lang.T("OpenWifiNone");
+            cfg.OpenWifiTunnel = OpenWifiTunnelBox.SelectedItem as string == none
+                ? "" : OpenWifiTunnelBox.SelectedItem as string ?? "";
+            _main.SaveConfigPublic($"Open network tunnel: {(string.IsNullOrEmpty(cfg.OpenWifiTunnel) ? "none" : cfg.OpenWifiTunnel)}");
+        }
+
+        private void AddRule_Click(object sender, RoutedEventArgs e)
+        {
+            _main.Dispatcher.Invoke(() => _main.AddRulePublic());
+            RefreshAutomationControls();
+        }
+
+        private void EditRule_Click(object sender, RoutedEventArgs e)
+        {
+            if (RulesListView.SelectedItem is not TunnelRule rule) return;
+            _main.Dispatcher.Invoke(() => _main.EditRulePublic(rule));
+            RefreshAutomationControls();
+        }
+
+        private void DeleteRule_Click(object sender, RoutedEventArgs e)
+        {
+            if (RulesListView.SelectedItem is not TunnelRule rule) return;
+            _main.Dispatcher.Invoke(() => _main.DeleteRulePublic(rule));
+            RefreshAutomationControls();
+        }
+
+        private void RulesListView_SelectionChanged(object sender,
+            System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            bool sel = RulesListView.SelectedItem != null;
+            if (EditBtn   != null) EditBtn.IsEnabled   = sel;
+            if (DeleteBtn != null) DeleteBtn.IsEnabled = sel;
+        }
     }
 }

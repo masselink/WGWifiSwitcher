@@ -451,9 +451,7 @@ namespace MasselGUARD
 
         internal static void WriteDebug(string message)
         {
-            try { File.AppendAllText(Path.Combine(ExeDir, "service-debug.log"),
-                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}  {message}{Environment.NewLine}"); }
-            catch { }
+            // service-debug.log removed — debug output goes to activity log only
         }
     }
 

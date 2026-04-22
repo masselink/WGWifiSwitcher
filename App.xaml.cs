@@ -314,8 +314,7 @@ namespace MasselGUARD
             var accent  = System.Windows.Media.Color.FromRgb(88, 166, 255);
             var textC   = System.Windows.Media.Color.FromRgb(230, 237, 243);
             var subC    = System.Windows.Media.Color.FromRgb(139, 148, 158);
-            var warn    = System.Windows.Media.Color.FromRgb(247, 129,  102);
-            var green   = System.Windows.Media.Color.FromRgb(63, 185,  80);
+            var warn    = System.Windows.Media.Color.FromRgb(247, 129, 102);
             System.Windows.Media.Brush Br(System.Windows.Media.Color c) =>
                 new System.Windows.Media.SolidColorBrush(c);
 
@@ -358,7 +357,7 @@ namespace MasselGUARD
                 FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize   = 15, FontWeight = FontWeights.Bold,
                 Foreground = Br(warn),
-                Margin     = new Thickness(0, 0, 0, 12)
+                Margin     = new Thickness(0, 0, 0, 14)
             });
 
             stack.Children.Add(new System.Windows.Controls.TextBlock
@@ -367,37 +366,14 @@ namespace MasselGUARD
                 FontFamily   = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize     = 11, Foreground = Br(subC),
                 TextWrapping = System.Windows.TextWrapping.Wrap,
-                Margin       = new Thickness(0, 0, 0, 6)
-            });
-
-            stack.Children.Add(new System.Windows.Controls.TextBlock
-            {
-                Text         = Lang.T("AlreadyRunningChoice"),
-                FontFamily   = new System.Windows.Media.FontFamily("Consolas"),
-                FontSize     = 11, Foreground = Br(subC),
-                TextWrapping = System.Windows.TextWrapping.Wrap,
                 Margin       = new Thickness(0, 0, 0, 20)
             });
 
-            // Button row
-            var btnRow = new System.Windows.Controls.StackPanel
-            {
-                Orientation         = System.Windows.Controls.Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Right
-            };
-
-            // Show: green text on dark-green bg; Exit: light text on neutral bg
-            var bgShow  = System.Windows.Media.Color.FromRgb(22, 55, 25);    // dark green
-            var hovShow = System.Windows.Media.Color.FromRgb(30, 80, 35);    // brighter green hover
-            var bgExit  = System.Windows.Media.Color.FromRgb(36, 41, 51);    // neutral dark
-            var hovExit = System.Windows.Media.Color.FromRgb(55, 62, 76);    // lighter hover
-            var showBtn = MakeBtn(Lang.T("AlreadyRunningBtnShow"), green, bgShow, hovShow);
+            var bgExit  = System.Windows.Media.Color.FromRgb(36, 41, 51);
+            var hovExit = System.Windows.Media.Color.FromRgb(55, 62, 76);
             var exitBtn = MakeBtn(Lang.T("AlreadyRunningBtnExit"), textC, bgExit, hovExit);
-            exitBtn.Margin = new Thickness(8, 0, 0, 0);
-
-            btnRow.Children.Add(showBtn);
-            btnRow.Children.Add(exitBtn);
-            stack.Children.Add(btnRow);
+            exitBtn.HorizontalAlignment = HorizontalAlignment.Right;
+            stack.Children.Add(exitBtn);
 
             // Title bar
             var titleBar = new System.Windows.Controls.Border
@@ -450,14 +426,6 @@ namespace MasselGUARD
                 if (mev.LeftButton == System.Windows.Input.MouseButtonState.Pressed) win.DragMove();
             };
 
-            // "Show running instance" — bring to front and close this dialog
-            showBtn.MouseLeftButtonUp += (_, _) =>
-            {
-                BringExistingToFront();
-                win.Close();
-            };
-
-            // "Exit" — just close the dialog (caller will Shutdown() this instance)
             exitBtn.MouseLeftButtonUp += (_, _) => win.Close();
 
             win.ShowDialog();
